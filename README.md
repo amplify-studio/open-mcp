@@ -1,343 +1,330 @@
-# SearXNG MCP Server
+# Open MCP
 
-An [MCP server](https://modelcontextprotocol.io/introduction) implementation that integrates the [SearXNG](https://docs.searxng.org) API, providing web search capabilities.
+> An open-source MCP (Model Context Protocol) server solution for AI agent integration.
 
-[![https://nodei.co/npm/mcp-searxng.png?downloads=true&downloadRank=true&stars=true](https://nodei.co/npm/mcp-searxng.png?downloads=true&downloadRank=true&stars=true)](https://www.npmjs.com/package/mcp-searxng)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![https://badgen.net/docker/pulls/isokoliuk/mcp-searxng](https://badgen.net/docker/pulls/isokoliuk/mcp-searxng)](https://hub.docker.com/r/isokoliuk/mcp-searxng)
+## Overview
 
-<a href="https://glama.ai/mcp/servers/0j7jjyt7m9"><img width="380" height="200" src="https://glama.ai/mcp/servers/0j7jjyt7m9/badge" alt="SearXNG Server MCP server" /></a>
+Open MCP is a comprehensive server solution that enables AI assistants (like Claude) to interact with external services through the Model Context Protocol. Currently focused on web search and content extraction, with plans to expand into a full-featured AI agent platform.
 
-## Features
+## Current Features
 
-- **Web Search**: General queries, news, articles, with pagination.
-- **URL Content Reading**: Advanced content extraction with pagination, section filtering, and heading extraction.
-- **Intelligent Caching**: URL content is cached with TTL (Time-To-Live) to improve performance and reduce redundant requests.
-- **Pagination**: Control which page of results to retrieve.
-- **Time Filtering**: Filter results by time range (day, month, year).
-- **Language Selection**: Filter results by preferred language.
-- **Safe Search**: Control content filtering level for search results.
+### 🌐 Web Search
+- General web queries with pagination
+- Time-based filtering (day, month, year)
+- Language selection
+- Safe search levels
 
-## Tools
+### 📄 URL Content Reading
+- Extract web page content as text/markdown
+- Intelligent caching with TTL
+- Section extraction and pagination options
 
-- **searxng_web_search**
-  - Execute web searches with pagination
-  - Inputs:
-    - `query` (string): The search query. This string is passed to external search services.
-    - `pageno` (number, optional): Search page number, starts at 1 (default 1)
-    - `time_range` (string, optional): Filter results by time range - one of: "day", "month", "year" (default: none)
-    - `language` (string, optional): Language code for results (e.g., "en", "fr", "de") or "all" (default: "all")
-    - `safesearch` (number, optional): Safe search filter level (0: None, 1: Moderate, 2: Strict) (default: instance setting)
+## Roadmap
 
-- **web_url_read**
-  - Read and convert the content from a URL to markdown with advanced content extraction options
-  - Inputs:
-    - `url` (string): The URL to fetch and process
-    - `startChar` (number, optional): Starting character position for content extraction (default: 0)
-    - `maxLength` (number, optional): Maximum number of characters to return
-    - `section` (string, optional): Extract content under a specific heading (searches for heading text)
-    - `paragraphRange` (string, optional): Return specific paragraph ranges (e.g., '1-5', '3', '10-')
-    - `readHeadings` (boolean, optional): Return only a list of headings instead of full content
+### Phase 1: Current (Search & Content)
+- ✅ Web search via Gateway API
+- ✅ URL content reading
+- ✅ Intelligent caching
+
+### Phase 2: Knowledge Base (RAG)
+- 🔄 Document indexing
+- 🔄 Semantic search
+- 🔄 Vector storage integration
+
+### Phase 3: Data Integration
+- ⏳ Database connectors
+- ⏳ API integrations
+- ⏳ File system access
+
+### Phase 4: Agent Framework
+- ⏳ Tool composition
+- ⏳ Workflow orchestration
+- ⏳ Multi-agent coordination
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Open MCP                             │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐            │
+│  │   Search   │  │  Content   │  │  Future    │            │
+│  │   Module   │  │   Reader   │  │  Modules   │            │
+│  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘            │
+│        │                │                │                   │
+│        └────────────────┴────────────────┘                   │
+│                         │                                    │
+│                   ┌─────▼─────┐                              │
+│                   │   Core    │                              │
+│                   │  Layer    │                              │
+│                   └─────┬─────┘                              │
+│                         │                                    │
+│  ┌──────────────────────┼──────────────────────┐            │
+│  │                      │                      │            │
+│ ▼▼                     ▼▼                    ▼▼           │
+┌─────────┐         ┌─────────┐          ┌─────────┐         │
+│  Cache  │         │ Gateway │          │ Plugins │         │
+└─────────┘         └─────────┘          └─────────┘         │
+│                                                               │
+└─────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+                    ┌─────────────────┐
+                    │  Gateway API    │
+                    │  (External)     │
+                    └─────────────────┘
+```
+
+## Installation
+
+### Option 1: From npm (Recommended)
+
+**Using Claude CLI:**
+```bash
+claude mcp add-json -s user open-mcp '{
+  "command": "npx",
+  "args": ["-y", "@amplify-studio/open-mcp@latest"]
+}'
+```
+
+**With custom gateway:**
+```bash
+claude mcp add-json -s user open-mcp '{
+  "command": "npx",
+  "args": ["-y", "@amplify-studio/open-mcp@latest"],
+  "env": {
+    "GATEWAY_URL": "http://115.190.91.253:80"
+  }
+}'
+```
+
+### Option 2: Claude Desktop Config
+
+Edit `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "open-mcp": {
+      "command": "npx",
+      "args": ["-y", "@amplify-studio/open-mcp@latest"]
+    }
+  }
+}
+```
+
+**With custom gateway:**
+```json
+{
+  "mcpServers": {
+    "open-mcp": {
+      "command": "npx",
+      "args": ["-y", "@amplify-studio/open-mcp@latest"],
+      "env": {
+        "GATEWAY_URL": "http://115.190.91.253:80"
+      }
+    }
+  }
+}
+```
+
+### Option 3: From GitHub
+
+Alternative: install directly from GitHub (no npm):
+
+```json
+{
+  "mcpServers": {
+    "open-mcp": {
+      "command": "npx",
+      "args": ["-y", "github:amplify-studio/open-mcp"]
+    }
+  }
+}
+```
+
+### Option 4: Local Development (For Developers)
+
+```bash
+# Clone the repository
+git clone https://github.com/amplify-studio/open-mcp.git
+cd open-mcp
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Run directly
+node dist/index.js
+```
+
+**Claude Desktop Config** (local development):
+```json
+{
+  "mcpServers": {
+    "open-mcp": {
+      "command": "node",
+      "args": ["/path/to/open-mcp/dist/index.js"]
+    }
+  }
+}
+```
+
+### Option 5: Test with MCP Inspector
+
+```bash
+cd open-mcp
+npm run inspector
+# Visit http://localhost:6274 to test
+```
+
+### Option 6: Global Install (Advanced)
+
+```bash
+cd open-mcp
+npm link
+# Then use: open-mcp
+```
+
+## Updating
+
+To update to the latest version:
+
+### Using Claude CLI
+
+```bash
+# Remove old version
+claude mcp remove open-mcp
+
+# Install latest version
+claude mcp add-json -s user open-mcp '{
+  "command": "npx",
+  "args": ["-y", "@amplify-studio/open-mcp@latest"]
+}'
+```
+
+### Clear npx Cache (Optional)
+
+If you encounter issues after updating:
+
+```bash
+# Clear npx cache
+npm cache clean --force
+
+# Then reinstall
+claude mcp remove open-mcp
+claude mcp add-json -s user open-mcp '{
+  "command": "npx",
+  "args": ["-y", "@amplify-studio/open-mcp@latest"]
+}'
+```
+
+### Check Current Version
+
+```bash
+# View your configuration
+cat ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+## Output Format
+
+Both tools return JSON strings for structured data parsing.
+
+### Web Search Output
+
+```json
+{
+  "query": "search term",
+  "results": [
+    {
+      "title": "Result Title",
+      "content": "Description or snippet",
+      "url": "https://example.com",
+      "score": 0.123
+    }
+  ],
+  "totalCount": 10,
+  "duration": "234ms",
+  "page": 1
+}
+```
+
+### URL Read Output
+
+```json
+{
+  "url": "https://example.com",
+  "content": "Page content in markdown/text format...",
+  "charCount": 1500,
+  "duration": "456ms",
+  "cached": false
+}
+```
 
 ## Configuration
 
-### Environment Variables
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `GATEWAY_URL` | No | `http://115.190.91.253:80` | Gateway API base URL |
+| `AUTH_USERNAME` | No | - | Basic auth username |
+| `AUTH_PASSWORD` | No | - | Basic auth password |
+| `HTTP_PROXY` | No | - | Proxy URL for HTTP requests |
+| `HTTPS_PROXY` | No | - | Proxy URL for HTTPS requests |
+| `NO_PROXY` | No | - | Comma-separated bypass list |
+| `MCP_HTTP_PORT` | No | - | Enable HTTP transport on specified port |
 
-#### Required
-- **`SEARXNG_URL`**: SearXNG instance URL (default: `http://localhost:8080`)
-  - Format: `<protocol>://<hostname>[:<port>]`
-  - Example: `https://search.example.com`
+## Gateway API
 
-#### Optional
-- **`AUTH_USERNAME`** / **`AUTH_PASSWORD`**: HTTP Basic Auth credentials for password-protected instances
-- **`USER_AGENT`**: Custom User-Agent header (e.g., `MyBot/1.0`)
-- **`HTTP_PROXY`** / **`HTTPS_PROXY`**: Proxy URLs for routing traffic
-  - Format: `http://[username:password@]proxy.host:port`
-- **`NO_PROXY`**: Comma-separated bypass list (e.g., `localhost,.internal,example.com`)
+The server connects to a Gateway API that provides:
 
-## Installation & Configuration
+| API | Method | Endpoint | Description |
+|-----|--------|----------|-------------|
+| Search | GET | `/api/search/` | Web search |
+| Read | GET | `/api/read/{url}` | Extract web content |
+| Health | GET | `/health` | Health check |
+| Status | GET | `/api/status` | Service status |
 
-### [NPX](https://www.npmjs.com/package/mcp-searxng)
-
-```json
-{
-  "mcpServers": {
-    "searxng": {
-      "command": "npx",
-      "args": ["-y", "mcp-searxng"],
-      "env": {
-        "SEARXNG_URL": "YOUR_SEARXNG_INSTANCE_URL"
-      }
-    }
-  }
-}
-```
-
-<details>
-<summary>Full Configuration Example (All Options)</summary>
-
-```json
-{
-  "mcpServers": {
-    "searxng": {
-      "command": "npx",
-      "args": ["-y", "mcp-searxng"],
-      "env": {
-        "SEARXNG_URL": "YOUR_SEARXNG_INSTANCE_URL",
-        "AUTH_USERNAME": "your_username",
-        "AUTH_PASSWORD": "your_password",
-        "USER_AGENT": "MyBot/1.0",
-        "HTTP_PROXY": "http://proxy.company.com:8080",
-        "HTTPS_PROXY": "http://proxy.company.com:8080",
-        "NO_PROXY": "localhost,127.0.0.1,.local,.internal"
-      }
-    }
-  }
-}
-```
-
-**Note:** Mix and match environment variables as needed. All optional variables can be used independently or together.
-
-</details>
-
-### [NPM](https://www.npmjs.com/package/mcp-searxng)
+## Development
 
 ```bash
-npm install -g mcp-searxng
+# Install dependencies
+npm install
+
+# Development mode with file watching
+npm run watch
+
+# Run tests
+npm test
+
+# Test with MCP Inspector
+npm run inspector
+
+# Build for production
+npm run build
 ```
 
-```json
-{
-  "mcpServers": {
-    "searxng": {
-      "command": "mcp-searxng",
-      "env": {
-        "SEARXNG_URL": "YOUR_SEARXNG_INSTANCE_URL"
-      }
-    }
-  }
-}
-```
+## Contributing
 
-<details>
-<summary>Full Configuration Example (All Options)</summary>
+We're building an open-source community for AI agent infrastructure. Contributions welcome!
 
-```json
-{
-  "mcpServers": {
-    "searxng": {
-      "command": "mcp-searxng",
-      "env": {
-        "SEARXNG_URL": "YOUR_SEARXNG_INSTANCE_URL",
-        "AUTH_USERNAME": "your_username",
-        "AUTH_PASSWORD": "your_password",
-        "USER_AGENT": "MyBot/1.0",
-        "HTTP_PROXY": "http://proxy.company.com:8080",
-        "HTTPS_PROXY": "http://proxy.company.com:8080",
-        "NO_PROXY": "localhost,127.0.0.1,.local,.internal"
-      }
-    }
-  }
-}
-```
-
-</details>
-
-### Docker
-
-#### Using [Pre-built Image from Docker Hub](https://hub.docker.com/r/isokoliuk/mcp-searxng)
-
-```bash
-docker pull isokoliuk/mcp-searxng:latest
-```
-
-```json
-{
-  "mcpServers": {
-    "searxng": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "SEARXNG_URL",
-        "isokoliuk/mcp-searxng:latest"
-      ],
-      "env": {
-        "SEARXNG_URL": "YOUR_SEARXNG_INSTANCE_URL"
-      }
-    }
-  }
-}
-```
-
-<details>
-<summary>Full Configuration Example (All Options)</summary>
-
-```json
-{
-  "mcpServers": {
-    "searxng": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "SEARXNG_URL",
-        "-e", "AUTH_USERNAME",
-        "-e", "AUTH_PASSWORD",
-        "-e", "USER_AGENT",
-        "-e", "HTTP_PROXY",
-        "-e", "HTTPS_PROXY",
-        "-e", "NO_PROXY",
-        "isokoliuk/mcp-searxng:latest"
-      ],
-      "env": {
-        "SEARXNG_URL": "YOUR_SEARXNG_INSTANCE_URL",
-        "AUTH_USERNAME": "your_username",
-        "AUTH_PASSWORD": "your_password",
-        "USER_AGENT": "MyBot/1.0",
-        "HTTP_PROXY": "http://proxy.company.com:8080",
-        "HTTPS_PROXY": "http://proxy.company.com:8080",
-        "NO_PROXY": "localhost,127.0.0.1,.local,.internal"
-      }
-    }
-  }
-}
-```
-
-**Note:** Add only the `-e` flags and env variables you need.
-
-</details>
-
-#### Build Locally
-
-```bash
-docker build -t mcp-searxng:latest -f Dockerfile .
-```
-
-Use the same configuration as above, replacing `isokoliuk/mcp-searxng:latest` with `mcp-searxng:latest`.
-
-#### Docker Compose
-
-Create a `docker-compose.yml` file:
-
-```yaml
-services:
-  mcp-searxng:
-    image: isokoliuk/mcp-searxng:latest
-    stdin_open: true
-    environment:
-      - SEARXNG_URL=YOUR_SEARXNG_INSTANCE_URL
-      # Add any optional variables as needed:
-      # - AUTH_USERNAME=your_username
-      # - AUTH_PASSWORD=your_password
-      # - USER_AGENT=MyBot/1.0
-      # - HTTP_PROXY=http://proxy.company.com:8080
-      # - HTTPS_PROXY=http://proxy.company.com:8080
-      # - NO_PROXY=localhost,127.0.0.1,.local,.internal
-```
-
-Then configure your MCP client:
-
-```json
-{
-  "mcpServers": {
-    "searxng": {
-      "command": "docker-compose",
-      "args": ["run", "--rm", "mcp-searxng"]
-    }
-  }
-}
-```
-
-### HTTP Transport (Optional)
-
-The server supports both STDIO (default) and HTTP transports. Set `MCP_HTTP_PORT` to enable HTTP mode.
-
-```json
-{
-  "mcpServers": {
-    "searxng-http": {
-      "command": "mcp-searxng",
-      "env": {
-        "SEARXNG_URL": "YOUR_SEARXNG_INSTANCE_URL",
-        "MCP_HTTP_PORT": "3000"
-      }
-    }
-  }
-}
-```
-
-**HTTP Endpoints:**
-- **MCP Protocol**: `POST/GET/DELETE /mcp` 
-- **Health Check**: `GET /health`
-
-**Testing:**
-```bash
-MCP_HTTP_PORT=3000 SEARXNG_URL=http://localhost:8080 mcp-searxng
-curl http://localhost:3000/health
-```
-
-## Running evals
-
-```bash
-SEARXNG_URL=YOUR_URL OPENAI_API_KEY=your-key npx mcp-eval evals.ts src/index.ts
-```
-
-## For Developers
-
-### Contributing
-
-We welcome contributions! Follow these guidelines:
-
-**Coding Standards:**
-- Use TypeScript with strict type safety
-- Follow existing error handling patterns
-- Write concise, informative error messages
-- Include unit tests for new functionality
-- Maintain 90%+ test coverage
-- Test with MCP inspector before submitting
-- Run evals to verify functionality
-
-**Workflow:**
-
-1. **Fork and clone:**
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/mcp-searxng.git
-   cd mcp-searxng
-   git remote add upstream https://github.com/ihor-sokoliuk/mcp-searxng.git
-   ```
-
-2. **Setup:**
-   ```bash
-   npm install
-   npm run watch  # Development mode with file watching
-   ```
-
-3. **Development:**
-   ```bash
-   git checkout -b feature/your-feature-name
-   # Make changes in src/
-   npm run build
-   npm test
-   npm run test:coverage
-   npm run inspector
-   ```
-
-4. **Submit:**
-   ```bash
-   git commit -m "feat: description"
-   git push origin feature/your-feature-name
-   # Create PR on GitHub
-   ```
-
-### Testing
-
-```bash
-npm test                    # Run all tests
-npm run test:coverage      # Generate coverage report
-npm run test:watch         # Watch mode
-```
-
-**Coverage:** 100% success rate with comprehensive unit tests covering error handling, types, proxy configs, resources, and logging.
+- Fork the repository
+- Create a feature branch
+- Make your changes
+- Submit a pull request
 
 ## License
 
-This MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
+MIT
+
+## Credits
+
+Based on [mcp-searxng](https://github.com/ihor-sokoliuk/mcp-searxng) by Ihor Sokoliuk
+
+---
+
+**Made with ❤️ by [Amplify Studio](https://github.com/amplify-studio)**

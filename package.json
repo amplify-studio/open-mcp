@@ -1,14 +1,14 @@
 {
-    "name": "mcp-searxng",
-    "version": "0.8.0",
-    "description": "MCP server for SearXNG integration",
+    "name": "@amplify-studio/open-mcp",
+    "version": "0.8.2",
+    "description": "Open MCP server for web search and URL reading via Gateway API",
     "license": "MIT",
-    "author": "Ihor Sokoliuk (https://github.com/ihor-sokoliuk)",
-    "homepage": "https://github.com/ihor-sokoliuk/mcp-searxng",
-    "bugs": "https://github.com/ihor-sokoliuk/mcp-searxng/issues",
+    "author": "Amplify Studio (https://github.com/amplify-studio)",
+    "homepage": "https://github.com/amplify-studio/open-mcp",
+    "bugs": "https://github.com/amplify-studio/open-mcp/issues",
     "repository": {
         "type": "git",
-        "url": "https://github.com/ihor-sokoliuk/mcp-searxng"
+        "url": "https://github.com/amplify-studio/open-mcp"
     },
     "keywords": [
         "mcp",
@@ -24,7 +24,7 @@
     ],
     "type": "module",
     "bin": {
-        "mcp-searxng": "dist/index.js"
+        "open-mcp": "dist/index.js"
     },
     "main": "dist/index.js",
     "files": [

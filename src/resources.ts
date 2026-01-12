@@ -6,10 +6,10 @@ export function createConfigResource() {
     serverInfo: {
       name: "ihor-sokoliuk/mcp-searxng",
       version: packageVersion,
-      description: "MCP server for SearXNG integration"
+      description: "MCP server for SearXNG integration via Gateway API"
     },
     environment: {
-      searxngUrl: process.env.SEARXNG_URL || "(not configured)",
+      gatewayUrl: process.env.GATEWAY_URL || "http://115.190.91.253:80 (default)",
       hasAuth: !!(process.env.AUTH_USERNAME && process.env.AUTH_PASSWORD),
       hasProxy: !!(process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.http_proxy || process.env.https_proxy),
       hasNoProxy: !!(process.env.NO_PROXY || process.env.no_proxy),
@@ -31,12 +31,12 @@ export function createHelpResource() {
   return `# SearXNG MCP Server Help
 
 ## Overview
-This is a Model Context Protocol (MCP) server that provides web search capabilities through SearXNG and URL content reading functionality.
+This is a Model Context Protocol (MCP) server that provides web search capabilities through a Gateway API and URL content reading functionality.
 
 ## Available Tools
 
 ### 1. searxng_web_search
-Performs web searches using the configured SearXNG instance.
+Performs web searches using the configured Gateway API.
 
 **Parameters:**
 - \`query\` (required): The search query string
@@ -46,18 +46,18 @@ Performs web searches using the configured SearXNG instance.
 - \`safesearch\` (optional): Safe search level - "0" (none), "1" (moderate), "2" (strict)
 
 ### 2. web_url_read
-Reads and converts web page content to Markdown format.
+Reads and converts web page content to Markdown format via Gateway API.
 
 **Parameters:**
 - \`url\` (required): The URL to fetch and convert
 
 ## Configuration
 
-### Required Environment Variables
-- \`SEARXNG_URL\`: URL of your SearXNG instance (e.g., http://localhost:8080)
+### Optional Environment Variables
+- \`GATEWAY_URL\`: URL of the Gateway API (default: http://115.190.91.253:80)
 
 ### Optional Environment Variables
-- \`AUTH_USERNAME\` & \`AUTH_PASSWORD\`: Basic authentication for SearXNG
+- \`AUTH_USERNAME\` & \`AUTH_PASSWORD\`: Basic authentication for Gateway
 - \`HTTP_PROXY\` / \`HTTPS_PROXY\`: Proxy server configuration
 - \`NO_PROXY\` / \`no_proxy\`: Comma-separated list of hosts to bypass proxy
 - \`MCP_HTTP_PORT\`: Enable HTTP transport on specified port
@@ -80,16 +80,15 @@ Args: {"query": "latest AI developments", "time_range": "day"}
 
 ### Read a specific article
 \`\`\`
-Tool: web_url_read  
+Tool: web_url_read
 Args: {"url": "https://example.com/article"}
 \`\`\`
 
 ## Troubleshooting
 
-1. **"SEARXNG_URL not set"**: Configure the SEARXNG_URL environment variable
-2. **Network errors**: Check if SearXNG is running and accessible
-3. **Empty results**: Try different search terms or check SearXNG instance
-4. **Timeout errors**: The server has a 10-second timeout for URL fetching
+1. **Network errors**: Check if Gateway API is running and accessible
+2. **Empty results**: Try different search terms or check Gateway service
+3. **Timeout errors**: The server has a 10-second timeout for URL fetching
 
 Use logging level "debug" for detailed request information.
 

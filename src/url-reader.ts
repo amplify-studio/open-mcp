@@ -169,6 +169,10 @@ export async function fetchAndConvertToMarkdown(
     throw createURLFormatError(url);
   }
 
+  // Build gateway API URL
+  const gatewayUrl = process.env.GATEWAY_URL || "http://115.190.91.253:80";
+  const gatewayApiUrl = `${gatewayUrl}/api/read/${encodeURIComponent(url)}`;
+
   // Create an AbortController instance
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -181,18 +185,19 @@ export async function fetchAndConvertToMarkdown(
 
     // Add proxy dispatcher if proxy is configured
     // Node.js fetch uses 'dispatcher' option for proxy, not 'agent'
-    const proxyAgent = createProxyAgent(url);
+    const proxyAgent = createProxyAgent(gatewayApiUrl);
     if (proxyAgent) {
       (requestOptions as any).dispatcher = proxyAgent;
     }
 
     let response: Response;
     try {
-      // Fetch the URL with the abort signal
-      response = await fetch(url, requestOptions);
+      // Fetch the URL via gateway API with the abort signal
+      response = await fetch(gatewayApiUrl, requestOptions);
     } catch (error: any) {
       const context: ErrorContext = {
         url,
+        gatewayUrl,
         proxyAgent: !!proxyAgent,
         timeout: timeoutMs
       };
@@ -207,48 +212,53 @@ export async function fetchAndConvertToMarkdown(
         responseBody = '[Could not read response body]';
       }
 
-      const context: ErrorContext = { url };
+      const context: ErrorContext = { url, gatewayUrl };
       throw createServerError(response.status, response.statusText, responseBody, context);
     }
 
-    // Retrieve HTML content
-    let htmlContent: string;
+    // Retrieve content from gateway API (JSON response)
+    let markdownContent: string;
     try {
-      htmlContent = await response.text();
+      const jsonData = await response.json();
+
+      // Gateway API returns: { content: "...", title: "...", url: "...", wordCount: N }
+      if (!jsonData.content) {
+        throw createContentError("Gateway API returned empty content field.", url);
+      }
+
+      markdownContent = jsonData.content;
     } catch (error: any) {
+      if (error.name === 'MCPSearXNGError') {
+        throw error;
+      }
       throw createContentError(
-        `Failed to read website content: ${error.message || 'Unknown error reading content'}`,
+        `Failed to read gateway response: ${error.message || 'Unknown error'}`,
         url
       );
     }
 
-    if (!htmlContent || htmlContent.trim().length === 0) {
-      throw createContentError("Website returned empty content.", url);
-    }
-
-    // Convert HTML to Markdown
-    let markdownContent: string;
-    try {
-      markdownContent = NodeHtmlMarkdown.translate(htmlContent);
-    } catch (error: any) {
-      throw createConversionError(error, url, htmlContent);
-    }
-
     if (!markdownContent || markdownContent.trim().length === 0) {
-      logMessage(server, "warning", `Empty content after conversion: ${url}`);
-      // DON'T cache empty/failed conversions - return warning directly
-      return createEmptyContentWarning(url, htmlContent.length, htmlContent);
+      logMessage(server, "warning", `Empty content from gateway: ${url}`);
+      return createEmptyContentWarning(url, 0, "");
     }
 
-    // Only cache successful markdown conversion
-    urlCache.set(url, htmlContent, markdownContent);
+    // Cache the markdown content from gateway
+    urlCache.set(url, "", markdownContent);
 
     // Apply pagination options
-    const result = applyPaginationOptions(markdownContent, paginationOptions);
+    const content = applyPaginationOptions(markdownContent, paginationOptions);
 
     const duration = Date.now() - startTime;
-    logMessage(server, "info", `Successfully fetched and converted URL: ${url} (${result.length} chars in ${duration}ms)`);
-    return result;
+    logMessage(server, "info", `Successfully fetched and converted URL: ${url} (${content.length} chars in ${duration}ms)`);
+
+    // Return as JSON string
+    return JSON.stringify({
+      url,
+      content,
+      charCount: content.length,
+      duration: `${duration}ms`,
+      cached: !!cachedEntry
+    }, null, 2);
   } catch (error: any) {
     if (error.name === "AbortError") {
       logMessage(server, "error", `Timeout fetching URL: ${url} (${timeoutMs}ms)`);

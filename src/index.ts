@@ -276,7 +276,7 @@ async function main() {
     if (process.stdin.isTTY) {
       console.log(`🔍 MCP SearXNG Server v${packageVersion} - Ready`);
       console.log("✅ Configuration valid");
-      console.log(`🌐 SearXNG URL: ${process.env.SEARXNG_URL}`);
+      console.log(`🌐 Gateway URL: ${process.env.GATEWAY_URL || "http://115.190.91.253:80 (default)"}`);
       console.log("📡 Waiting for MCP client connection via STDIO...\n");
     }
     
@@ -287,7 +287,7 @@ async function main() {
     logMessage(server, "info", `MCP SearXNG Server v${packageVersion} connected via STDIO`);
     logMessage(server, "info", `Log level: ${currentLogLevel}`);
     logMessage(server, "info", `Environment: ${process.env.NODE_ENV || 'development'}`);
-    logMessage(server, "info", `SearXNG URL: ${process.env.SEARXNG_URL || 'not configured'}`);
+    logMessage(server, "info", `Gateway URL: ${process.env.GATEWAY_URL || 'http://115.190.91.253:80 (default)'}`);
   }
 }
 

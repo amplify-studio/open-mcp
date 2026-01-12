@@ -6,6 +6,7 @@
 export interface ErrorContext {
   url?: string;
   searxngUrl?: string;
+  gatewayUrl?: string;
   proxyAgent?: boolean;
   username?: string;
   timeout?: number;
@@ -24,7 +25,7 @@ export function createConfigurationError(message: string): MCPSearXNGError {
 }
 
 export function createNetworkError(error: any, context: ErrorContext): MCPSearXNGError {
-  const target = context.searxngUrl ? 'SearXNG server' : 'website';
+  const target = context.searxngUrl ? 'SearXNG server' : (context.gatewayUrl ? 'Gateway server' : 'website');
   
   if (error.code === 'ECONNREFUSED') {
     return new MCPSearXNGError(`🌐 Connection Error: ${target} is not responding (${context.url})`);
@@ -46,9 +47,11 @@ export function createNetworkError(error: any, context: ErrorContext): MCPSearXN
   // For generic fetch failures, provide root cause guidance
   const errorMsg = error.message || error.code || 'Connection failed';
   if (errorMsg === 'fetch failed' || errorMsg === 'Connection failed') {
-    const guidance = context.searxngUrl 
+    const guidance = context.searxngUrl
       ? 'Check if the SEARXNG_URL is correct and the SearXNG server is available'
-      : 'Check if the website URL is accessible';
+      : (context.gatewayUrl
+        ? 'Check if the GATEWAY_URL is correct and the Gateway server is available'
+        : 'Check if the website URL is accessible');
     return new MCPSearXNGError(`🌐 Network Error: ${errorMsg}. ${guidance}`);
   }
   
@@ -56,7 +59,7 @@ export function createNetworkError(error: any, context: ErrorContext): MCPSearXN
 }
 
 export function createServerError(status: number, statusText: string, responseBody: string, context: ErrorContext): MCPSearXNGError {
-  const target = context.searxngUrl ? 'SearXNG server' : 'Website';
+  const target = context.searxngUrl ? 'SearXNG server' : (context.gatewayUrl ? 'Gateway server' : 'Website');
   
   if (status === 403) {
     const reason = context.searxngUrl ? 'Authentication required or IP blocked' : 'Access blocked (bot detection or geo-restriction)';
@@ -119,24 +122,22 @@ export function createUnexpectedError(error: any, context: ErrorContext): MCPSea
 
 export function validateEnvironment(): string | null {
   const issues: string[] = [];
-  
-  const searxngUrl = process.env.SEARXNG_URL;
-  if (!searxngUrl) {
-    issues.push("SEARXNG_URL not set");
-  } else {
+
+  const gatewayUrl = process.env.GATEWAY_URL;
+  if (gatewayUrl) {
     try {
-      const url = new URL(searxngUrl);
+      const url = new URL(gatewayUrl);
       if (!['http:', 'https:'].includes(url.protocol)) {
-        issues.push(`SEARXNG_URL invalid protocol: ${url.protocol}`);
+        issues.push(`GATEWAY_URL invalid protocol: ${url.protocol}`);
       }
     } catch (error) {
-      issues.push(`SEARXNG_URL invalid format: ${searxngUrl}`);
+      issues.push(`GATEWAY_URL invalid format: ${gatewayUrl}`);
     }
   }
 
   const authUsername = process.env.AUTH_USERNAME;
   const authPassword = process.env.AUTH_PASSWORD;
-  
+
   if (authUsername && !authPassword) {
     issues.push("AUTH_USERNAME set but AUTH_PASSWORD missing");
   } else if (!authUsername && authPassword) {
@@ -147,5 +148,5 @@ export function validateEnvironment(): string | null {
     return null;
   }
 
-  return `⚠️ Configuration Issues: ${issues.join(', ')}. Set SEARXNG_URL (e.g., http://localhost:8080 or https://search.example.com)`;
+  return `⚠️ Configuration Issues: ${issues.join(', ')}. GATEWAY_URL is optional (defaults to http://115.190.91.253:80)`;
 }

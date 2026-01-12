@@ -31,27 +31,20 @@ export async function performWebSearch(
   ].filter(Boolean).join(", ");
   
   logMessage(server, "info", `Starting web search: "${query}" (${searchParams})`);
-  
-  const searxngUrl = process.env.SEARXNG_URL;
 
-  if (!searxngUrl) {
-    logMessage(server, "error", "SEARXNG_URL not configured");
-    throw createConfigurationError(
-      "SEARXNG_URL not set. Set it to your SearXNG instance (e.g., http://localhost:8080 or https://search.example.com)"
-    );
-  }
+  const gatewayUrl = process.env.GATEWAY_URL || "http://115.190.91.253:80";
 
-  // Validate that searxngUrl is a valid URL
+  // Validate that gatewayUrl is a valid URL
   let parsedUrl: URL;
   try {
-    parsedUrl = new URL(searxngUrl);
+    parsedUrl = new URL(gatewayUrl);
   } catch (error) {
     throw createConfigurationError(
-      `Invalid SEARXNG_URL format: ${searxngUrl}. Use format: http://localhost:8080`
+      `Invalid GATEWAY_URL format: ${gatewayUrl}. Use format: http://115.190.91.253:80`
     );
   }
 
-  const url = new URL('/search', parsedUrl);
+  const url = new URL('/api/search/', parsedUrl);
 
   url.searchParams.set("q", query);
   url.searchParams.set("format", "json");
@@ -114,7 +107,7 @@ export async function performWebSearch(
     logMessage(server, "error", `Network error during search request: ${error.message}`, { query, url: url.toString() });
     const context: ErrorContext = {
       url: url.toString(),
-      searxngUrl,
+      gatewayUrl,
       proxyAgent: !!proxyAgent,
       username
     };
@@ -131,7 +124,7 @@ export async function performWebSearch(
 
     const context: ErrorContext = {
       url: url.toString(),
-      searxngUrl
+      gatewayUrl
     };
     throw createServerError(response.status, response.statusText, responseBody, context);
   }
@@ -172,7 +165,12 @@ export async function performWebSearch(
   const duration = Date.now() - startTime;
   logMessage(server, "info", `Search completed: "${query}" (${searchParams}) - ${results.length} results in ${duration}ms`);
 
-  return results
-    .map((r) => `Title: ${r.title}\nDescription: ${r.content}\nURL: ${r.url}\nRelevance Score: ${r.score.toFixed(3)}`)
-    .join("\n\n");
+  // Return as JSON string
+  return JSON.stringify({
+    query,
+    results,
+    totalCount: results.length,
+    duration: `${duration}ms`,
+    page: pageno
+  }, null, 2);
 }
