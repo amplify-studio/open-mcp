@@ -1,0 +1,93 @@
+version: '3.8'
+
+# MCP Services Docker Compose 配置
+# 包含 Reader、SearXNG、Nginx 三个服务
+
+services:
+  # SearXNG 搜索引擎服务
+  searxng:
+    build:
+      context: ./docker/searxng
+      dockerfile: Dockerfile
+
+    container_name: mcp-searxng
+    restart: unless-stopped
+
+    ports:
+      - "8888:8888"
+
+    volumes:
+      - ./config/nginx/searxng-settings.yml:/etc/searxng/settings.yml:ro
+      - searxng-cache:/var/cache/searxng
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8888/search?q=test')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Reader 内容提取服务
+  reader:
+    build:
+      context: ./docker/reader
+      dockerfile: Dockerfile
+
+    container_name: mcp-reader
+    restart: unless-stopped
+
+    ports:
+      - "8080:8080"
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  # Nginx API 网关
+  nginx:
+    image: nginx:alpine
+
+    container_name: mcp-nginx
+    restart: unless-stopped
+
+    network_mode: host
+
+    depends_on:
+      searxng:
+        condition: service_healthy
+      reader:
+        condition: service_healthy
+
+    volumes:
+      # 挂载配置文件
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/sites-enabled:/etc/nginx/sites-enabled:ro
+      # 可选：日志持久化
+      # - ./logs/nginx:/var/log/nginx
+
+    # 删除默认配置并启动
+    command:
+      - /bin/sh
+      - -c
+      - |
+        rm -f /etc/nginx/conf.d/default.conf
+        exec nginx -g 'daemon off;'
+
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3333/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  searxng-cache:
+
+# 说明：
+# 1. SearXNG 运行在 8888 端口（容器化）
+# 2. Reader 运行在 8080 端口（容器化）
+# 3. Nginx 运行在 3333 端口（host 网络模式）
+# 4. Nginx 通过 localhost:8888 和 localhost:8080 访问后端服务
+# 5. 使用 depends_on 确保服务按顺序启动

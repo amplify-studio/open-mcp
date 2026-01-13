@@ -1,0 +1,135 @@
+# MCP Services Gateway - Site Configuration
+# Rate limiting is configured in /etc/nginx/nginx.conf
+
+# Rate limit error response (defined at http level, not server level)
+# This is handled within each server block
+
+# Main API Gateway
+server {
+    listen 3333;
+    server_name _;
+
+    # API 请求统计日志
+    access_log /var/log/nginx/api_access.log api_log;
+
+    # Preserve double slashes in URLs (for http://example.com)
+    merge_slashes off;
+
+    # DDoS protection
+    limit_req zone=ddos_limit burst=20 nodelay;
+    limit_conn conn_limit 10;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+
+    # Rate limit error response
+    error_page 429 = @rate_limit_error;
+
+    location @rate_limit_error {
+        internal;
+        default_type application/json;
+        return 429 '{"error": "Rate limit exceeded", "message": "Too many requests. Please slow down."}';
+    }
+
+    # ============================================
+    # SearXNG Search API (local on port 8888)
+    # ============================================
+    location /api/search/ {
+        limit_req zone=api_limit burst=10 nodelay;
+        limit_conn conn_limit 10;
+
+        proxy_pass http://127.0.0.1:8888/search;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Connection "";
+
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # ============================================
+    # Local Reader API (Python service on port 8080)
+    # ============================================
+    location /api/read {
+        limit_req zone=api_limit burst=10 nodelay;
+        limit_conn conn_limit 10;
+
+        # Rewrite: /api/read/http://example.com -> /http://example.com
+        # Then proxy to local Reader service
+        rewrite ^/api/read/(.*)$ /$1 break;
+
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Connection "";
+
+        # Longer timeout for crawling
+        proxy_connect_timeout 120s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+    }
+
+    # Alternative: POST method for Reader
+    location = /api/read {
+        limit_req zone=api_limit burst=10 nodelay;
+        limit_conn conn_limit 10;
+
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        proxy_connect_timeout 120s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+    }
+
+    # Jina Search API
+    location ~ ^/api/jina-search/(.*)$ {
+        limit_req zone=api_limit burst=10 nodelay;
+        limit_conn conn_limit 10;
+
+        # Rewrite URL
+        rewrite ^/api/jina-search/(.*)$ /$1 break;
+
+        # Proxy to Jina official Search API
+        proxy_pass https://s.jina.ai;
+        proxy_http_version 1.1;
+        proxy_set_header Host s.jina.ai;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        proxy_connect_timeout 90s;
+        proxy_send_timeout 90s;
+        proxy_read_timeout 90s;
+
+        proxy_ssl_server_name on;
+    }
+
+    # Health check
+    location /health {
+        access_log off;
+        return 200 "OK\n";
+        add_header Content-Type text/plain;
+    }
+
+    # Status endpoint
+    location /api/status {
+        limit_req zone=general_limit burst=20;
+        default_type application/json;
+        return 200 '{"status":"operational","services":{"search":"local (SearXNG)","read":"proxy (r.jina.ai)","jina_search":"proxy (s.jina.ai)"}}';
+    }
+
+    # Root endpoint
+    location / {
+        limit_req zone=general_limit burst=10 nodelay;
+        default_type application/json;
+        return 200 '{"name":"MCP Gateway","endpoints":{"search":"/api/search/","read":"/api/read/","jina_search":"/api/jina-search/","status":"/api/status"}}';
+    }
+}
