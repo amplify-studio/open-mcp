@@ -36,3 +36,6 @@ logs
 # OS files
 .DS_Store
 Thumbs.db
+
+# Docker
+docker-logs/

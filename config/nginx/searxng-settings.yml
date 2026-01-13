@@ -1,0 +1,76 @@
+# SearXNG settings
+
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "SearXNG"
+
+search:
+  safe_search: 2
+  autocomplete: 'duckduckgo'
+  formats:
+    - html
+    - json
+    - csv
+    - rss
+
+server:
+  # Is overwritten by ${SEARXNG_SECRET}
+  secret_key: "a5c2884876461ac01dd3a95448229d87ad171624f069de579ab7890826f8d403"
+  limiter: false
+  image_proxy: false
+  method: "GET"
+  bind_address: "0.0.0.0"
+  port: 8888
+  # public URL of the instance, to ensure correct inbound links. Is overwritten
+  # by ${SEARXNG_BASE_URL}.
+  # base_url: http://example.com/location
+
+valkey:
+  # URL to connect valkey database. Is overwritten by ${SEARXNG_VALKEY_URL}.
+  url: valkey://localhost:6379/0
+
+# preferences:
+#   lock:
+#     - autocomplete
+#     - method
+
+engines:
+  # 启用可访问的搜索引擎
+  - name: bing
+    disabled: false
+
+  - name: baidu
+    disabled: false
+
+  - name: sogou
+    disabled: false
+
+  - name: 360search
+    disabled: false
+
+  - name: chinaso
+    disabled: false
+
+  - name: yandex
+    disabled: false
+
+  # 禁用不可访问的搜索引擎
+  - name: google
+    disabled: true
+
+  - name: duckduckgo
+    disabled: true
+
+  - name: brave
+    disabled: true
+
+  - name: wikipedia
+    disabled: true
+
+  - name: startpage
+    disabled: true
+
+  - name: yahoo
+    disabled: true

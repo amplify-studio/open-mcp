@@ -308,6 +308,36 @@ npm run inspector
 npm run build
 ```
 
+## Docker Deployment
+
+### Quick Start
+
+```bash
+# Clone and start services
+git clone https://github.com/amplify-studio/open-mcp.git
+cd open-mcp
+docker-compose up -d
+
+# Verify deployment
+curl http://localhost:3333/health
+```
+
+### Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| SearXNG | 8888 | Metasearch engine |
+| Reader | 8080 | Web content extractor |
+| Nginx Gateway | 3333 | Unified API gateway |
+
+### API Endpoints
+
+- **Search**: `GET /api/search/?q=query`
+- **Read**: `GET /api/read/https://example.com`
+- **Health**: `GET /health`
+
+See [docker/README.md](docker/README.md) for detailed deployment guide.
+
 ## Contributing
 
 We're building an open-source community for AI agent infrastructure. Contributions welcome!
