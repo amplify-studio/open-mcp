@@ -6,6 +6,9 @@ LABEL description="SearXNG metasearch engine - auto clone version"
 
 WORKDIR /usr/local/searxng
 
+# 使用国内镜像源
+RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
+
 # 安装系统依赖（包括 git）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -24,8 +27,8 @@ RUN git clone --depth 1 --branch ${SEARXNG_VERSION} https://github.com/searxng/s
     cp /tmp/searxng/requirements.txt /tmp/searxng/requirements-server.txt . && \
     rm -rf /tmp/searxng
 
-# 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt -r requirements-server.txt
+# 安装 Python 依赖（使用国内镜像源）
+RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt -r requirements-server.txt
 
 # 创建数据目录
 RUN mkdir -p /etc/searxng /var/log/uwsgi
