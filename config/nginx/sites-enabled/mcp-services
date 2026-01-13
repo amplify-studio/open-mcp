@@ -39,7 +39,7 @@ server {
         limit_req zone=api_limit burst=10 nodelay;
         limit_conn conn_limit 10;
 
-        proxy_pass http://127.0.0.1:8888/search;
+        proxy_pass http://searxng:8888/search;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -62,7 +62,7 @@ server {
         # Then proxy to local Reader service
         rewrite ^/api/read/(.*)$ /$1 break;
 
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://reader:8080;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -80,7 +80,7 @@ server {
         limit_req zone=api_limit burst=10 nodelay;
         limit_conn conn_limit 10;
 
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://reader:8080;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
