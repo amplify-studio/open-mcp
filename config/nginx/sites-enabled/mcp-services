@@ -6,7 +6,7 @@
 
 # Main API Gateway
 server {
-    listen 3333;
+    listen 80;
     server_name _;
 
     # API 请求统计日志
@@ -39,7 +39,7 @@ server {
         limit_req zone=api_limit burst=10 nodelay;
         limit_conn conn_limit 10;
 
-        proxy_pass http://searxng:8888/search;
+        proxy_pass http://127.0.0.1:8888/search;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -49,6 +49,25 @@ server {
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
+    }
+
+    # ============================================
+    # Firecrawl Search API (port 3002)
+    # ============================================
+    location = /api/firecrawl-search {
+        limit_req zone=api_limit burst=10 nodelay;
+        limit_conn conn_limit 10;
+
+        proxy_pass http://127.0.0.1:3002/v1/search;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Connection "";
+
+        proxy_connect_timeout 90s;
+        proxy_send_timeout 90s;
+        proxy_read_timeout 90s;
     }
 
     # ============================================
@@ -62,7 +81,7 @@ server {
         # Then proxy to local Reader service
         rewrite ^/api/read/(.*)$ /$1 break;
 
-        proxy_pass http://reader:8080;
+        proxy_pass http://127.0.0.1:8082;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -80,7 +99,7 @@ server {
         limit_req zone=api_limit burst=10 nodelay;
         limit_conn conn_limit 10;
 
-        proxy_pass http://reader:8080;
+        proxy_pass http://127.0.0.1:8082;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -123,13 +142,32 @@ server {
     location /api/status {
         limit_req zone=general_limit burst=20;
         default_type application/json;
-        return 200 '{"status":"operational","services":{"search":"local (SearXNG)","read":"proxy (r.jina.ai)","jina_search":"proxy (s.jina.ai)"}}';
+        return 200 '{"status":"operational","services":{"search":"local (SearXNG)","firecrawl_search":"local (Firecrawl)","read":"local (Firecrawl Reader Adapter)","jina_search":"proxy (s.jina.ai)"}}';
     }
 
     # Root endpoint
     location / {
         limit_req zone=general_limit burst=10 nodelay;
         default_type application/json;
-        return 200 '{"name":"MCP Gateway","endpoints":{"search":"/api/search/","read":"/api/read/","jina_search":"/api/jina-search/","status":"/api/status"}}';
+        return 200 '{"name":"MCP Gateway","endpoints":{"search":"/api/search/","firecrawl_search":"/api/firecrawl-search","read":"/api/read/","v1/scrape":"/v1/scrape","jina_search":"/api/jina-search/","status":"/api/status"}}';
+    }
+
+    # ============================================
+    # Firecrawl Scrape API (port 3002)
+    # ============================================
+    location = /v1/scrape {
+        limit_req zone=api_limit burst=10 nodelay;
+        limit_conn conn_limit 10;
+
+        proxy_pass http://127.0.0.1:3002/v1/scrape;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Connection "";
+
+        proxy_connect_timeout 180s;
+        proxy_send_timeout 180s;
+        proxy_read_timeout 180s;
     }
 }
