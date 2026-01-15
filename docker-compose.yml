@@ -1,6 +1,21 @@
 # MCP Services + Firecrawl 集成配置
 # 包含: Firecrawl API + Playwright + PostgreSQL + Redis + Reader Adapter + SearXNG + Nginx
 
+# 日志配置
+x-logging-standard: &logging-standard
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+    compress: "true"
+
+x-logging-small: &logging-small
+  driver: "json-file"
+  options:
+    max-size: "5m"
+    max-file: "2"
+    compress: "true"
+
 x-firecrawl-common: &firecrawl-common
   image: ghcr.io/firecrawl/firecrawl:latest
   ulimits:
@@ -11,12 +26,7 @@ x-firecrawl-common: &firecrawl-common
     - mcp-network
   extra_hosts:
     - "host.docker.internal:host-gateway"
-  logging:
-    driver: "json-file"
-    options:
-      max-size: "10m"
-      max-file: "3"
-      compress: "true"
+  logging: *logging-standard
 
 x-firecrawl-env: &firecrawl-env
   # Redis 配置
@@ -87,12 +97,7 @@ services:
     cpus: 1.0
     mem_limit: 2G
     memswap_limit: 2G
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        compress: "true"
+    logging: *logging-standard
     tmpfs:
       - /tmp/.cache:noexec,nosuid,size=512m
 
@@ -128,12 +133,7 @@ services:
     networks:
       - mcp-network
     command: redis-server --bind 0.0.0.0
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-        compress: "true"
+    logging: *logging-small
 
   # ==================== PostgreSQL 数据库 ====================
   nuq-postgres:
@@ -148,12 +148,7 @@ services:
       - mcp-network
     volumes:
       - postgres-data:/var/lib/postgresql/data
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        compress: "true"
+    logging: *logging-standard
 
   # ==================== Firecrawl Reader Adapter (Jina 兼容) ====================
   firecrawl-reader-adapter:
@@ -176,12 +171,7 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-        compress: "true"
+    logging: *logging-small
 
   # ==================== SearXNG 搜索引擎服务 ====================
   mcp-searxng:
@@ -204,12 +194,7 @@ services:
       start_period: 10s
     cpus: 0.5
     mem_limit: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-        compress: "true"
+    logging: *logging-small
 
   # ==================== Nginx API 网关 ====================
   nginx:
@@ -229,6 +214,7 @@ services:
       # 挂载配置文件
       - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./config/nginx/sites-enabled:/etc/nginx/sites-enabled:ro
+      - ./config/nginx/conf.d:/etc/nginx/conf.d:ro
       # 可选：日志持久化
       # - ./logs/nginx:/var/log/nginx
     command:
