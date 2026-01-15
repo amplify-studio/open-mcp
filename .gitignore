@@ -39,3 +39,6 @@ Thumbs.db
 
 # Docker
 docker-logs/
+
+# Git worktrees
+.worktrees/

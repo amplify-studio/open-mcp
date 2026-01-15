@@ -7,22 +7,60 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { logMessage } from "./logging.js";
 import { packageVersion } from "./index.js";
 
+// Get allowed origins from environment variable
+const getAllowedOrigins = (): string | string[] => {
+  const allowedOrigins = process.env.ALLOWED_ORIGINS;
+  if (!allowedOrigins) {
+    return '*'; // Default to allowing all origins
+  }
+  return allowedOrigins.split(',').map(o => o.trim());
+};
+
 export async function createHttpServer(server: Server): Promise<express.Application> {
   const app = express();
   app.use(express.json());
-  
+
   // Add CORS support for web clients
   app.use(cors({
-    origin: '*', // Configure appropriately for production
+    origin: getAllowedOrigins(),
     exposedHeaders: ['Mcp-Session-Id'],
-    allowedHeaders: ['Content-Type', 'mcp-session-id'],
+    allowedHeaders: ['Content-Type', 'mcp-session-id', 'Accept'],
+    credentials: true,
   }));
 
   // Map to store transports by session ID  
   const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
 
+  // Validate Accept header for MCP specification compliance
+  const validateAcceptHeader = (acceptHeader: string | undefined): boolean => {
+    if (!acceptHeader) {
+      return false;
+    }
+    const header = acceptHeader.toLowerCase();
+    return header.includes('application/json') || header.includes('text/event-stream');
+  };
+
   // Handle POST requests for client-to-server communication
   app.post('/mcp', async (req, res) => {
+    // Validate Accept header for MCP spec compliance
+    const acceptHeader = req.headers['accept'];
+    if (!validateAcceptHeader(acceptHeader)) {
+      console.warn(`⚠️  POST request rejected - missing/invalid Accept header:`, {
+        clientIP: req.ip || req.connection.remoteAddress,
+        accept: acceptHeader || 'undefined',
+        userAgent: req.headers['user-agent'],
+      });
+      res.status(406).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32000,
+          message: 'Not Acceptable: Accept header must include application/json or text/event-stream',
+        },
+        id: null,
+      });
+      return;
+    }
+
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
     let transport: StreamableHTTPServerTransport;
 

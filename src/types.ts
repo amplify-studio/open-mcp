@@ -5,16 +5,12 @@ export interface SearXNGWeb {
     title: string;
     content: string;
     url: string;
-    score: number;
   }>;
 }
 
 export function isSearXNGWebSearchArgs(args: unknown): args is {
   query: string;
-  pageno?: number;
-  time_range?: string;
-  language?: string;
-  safesearch?: string;
+  limit?: number;
 } {
   return (
     typeof args === "object" &&
@@ -27,38 +23,22 @@ export function isSearXNGWebSearchArgs(args: unknown): args is {
 export const WEB_SEARCH_TOOL: Tool = {
   name: "searxng_web_search",
   description:
-    "Performs a web search using the SearXNG API, ideal for general queries, news, articles, and online content. " +
-    "Use this for broad information gathering, recent events, or when you need diverse web sources.",
+    "Performs web search using the Gateway API Firecrawl search. " +
+    "Returns search results with title, content, URL, and relevance score. " +
+    "Use this for general queries, news, articles, and online content.",
   inputSchema: {
     type: "object",
     properties: {
       query: {
         type: "string",
-        description:
-          "The search query. This is the main input for the web search",
+        description: "The search query string",
       },
-      pageno: {
+      limit: {
         type: "number",
-        description: "Search page number (starts at 1)",
-        default: 1,
-      },
-      time_range: {
-        type: "string",
-        description: "Time range of search (day, month, year)",
-        enum: ["day", "month", "year"],
-      },
-      language: {
-        type: "string",
-        description:
-          "Language code for search results (e.g., 'en', 'fr', 'de'). Default is instance-dependent.",
-        default: "all",
-      },
-      safesearch: {
-        type: "string",
-        description:
-          "Safe search filter level (0: None, 1: Moderate, 2: Strict)",
-        enum: ["0", "1", "2"],
-        default: "0",
+        description: "Maximum number of results to return (default: 10, max: 100)",
+        default: 10,
+        minimum: 1,
+        maximum: 100,
       },
     },
     required: ["query"],

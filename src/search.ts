@@ -1,40 +1,25 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { SearXNGWeb } from "./types.js";
 import { createProxyAgent } from "./proxy.js";
 import { logMessage } from "./logging.js";
 import {
   createConfigurationError,
   createNetworkError,
   createServerError,
-  createJSONError,
-  createDataError,
-  createNoResultsMessage,
   type ErrorContext
 } from "./error-handler.js";
 
 export async function performWebSearch(
   server: Server,
   query: string,
-  pageno: number = 1,
-  time_range?: string,
-  language: string = "all",
-  safesearch?: string
+  limit: number = 10
 ) {
   const startTime = Date.now();
-  
-  // Build detailed log message with all parameters
-  const searchParams = [
-    `page ${pageno}`,
-    `lang: ${language}`,
-    time_range ? `time: ${time_range}` : null,
-    safesearch ? `safesearch: ${safesearch}` : null
-  ].filter(Boolean).join(", ");
-  
-  logMessage(server, "info", `Starting web search: "${query}" (${searchParams})`);
+
+  logMessage(server, "info", `Starting web search: "${query}" (limit: ${limit})`);
 
   const gatewayUrl = process.env.GATEWAY_URL || "http://115.190.91.253:80";
 
-  // Validate that gatewayUrl is a valid URL
+  // Validate gateway URL
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(gatewayUrl);
@@ -44,64 +29,48 @@ export async function performWebSearch(
     );
   }
 
-  const url = new URL('/api/search/', parsedUrl);
+  const url = new URL('/api/firecrawl-search', parsedUrl);
 
-  url.searchParams.set("q", query);
-  url.searchParams.set("format", "json");
-  url.searchParams.set("pageno", pageno.toString());
-
-  if (
-    time_range !== undefined &&
-    ["day", "month", "year"].includes(time_range)
-  ) {
-    url.searchParams.set("time_range", time_range);
-  }
-
-  if (language && language !== "all") {
-    url.searchParams.set("language", language);
-  }
-
-  if (safesearch !== undefined && ["0", "1", "2"].includes(safesearch)) {
-    url.searchParams.set("safesearch", safesearch);
-  }
-
-  // Prepare request options with headers
-  const requestOptions: RequestInit = {
-    method: "GET"
+  // Prepare request body
+  const requestBody = {
+    query,
+    limit
   };
 
-  // Add proxy dispatcher if proxy is configured
-  // Node.js fetch uses 'dispatcher' option for proxy, not 'agent'
+  // Prepare request options
+  const requestOptions: RequestInit = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(requestBody)
+  };
+
+  // Add proxy dispatcher if configured
   const proxyAgent = createProxyAgent(url.toString());
   if (proxyAgent) {
     (requestOptions as any).dispatcher = proxyAgent;
   }
 
-  // Add basic authentication if credentials are provided
+  // Add basic authentication if configured
   const username = process.env.AUTH_USERNAME;
   const password = process.env.AUTH_PASSWORD;
 
   if (username && password) {
     const base64Auth = Buffer.from(`${username}:${password}`).toString('base64');
-    requestOptions.headers = {
-      ...requestOptions.headers,
-      'Authorization': `Basic ${base64Auth}`
-    };
+    (requestOptions.headers as Record<string, string>)['Authorization'] = `Basic ${base64Auth}`;
   }
 
-  // Add User-Agent header if configured
+  // Add User-Agent if configured
   const userAgent = process.env.USER_AGENT;
   if (userAgent) {
-    requestOptions.headers = {
-      ...requestOptions.headers,
-      'User-Agent': userAgent
-    };
+    (requestOptions.headers as Record<string, string>)['User-Agent'] = userAgent;
   }
 
-  // Fetch with enhanced error handling
+  // Fetch with error handling
   let response: Response;
   try {
-    logMessage(server, "info", `Making request to: ${url.toString()}`);
+    logMessage(server, "info", `Making POST request to: ${url.toString()}`);
     response = await fetch(url.toString(), requestOptions);
   } catch (error: any) {
     logMessage(server, "error", `Network error during search request: ${error.message}`, { query, url: url.toString() });
@@ -130,9 +99,9 @@ export async function performWebSearch(
   }
 
   // Parse JSON response
-  let data: SearXNGWeb;
+  let data: any;
   try {
-    data = (await response.json()) as SearXNGWeb;
+    data = await response.json();
   } catch (error: any) {
     let responseText: string;
     try {
@@ -142,35 +111,46 @@ export async function performWebSearch(
     }
 
     const context: ErrorContext = { url: url.toString() };
-    throw createJSONError(responseText, context);
+    throw new Error(`Failed to parse JSON response: ${responseText}`);
   }
 
-  if (!data.results) {
-    const context: ErrorContext = { url: url.toString(), query };
-    throw createDataError(data, context);
+  // Handle Firecrawl API response format: {success: true, data: [...]}
+  let results = data.results || data.data || [];
+
+  // If wrapped in success object
+  if (data.success && data.data) {
+    results = data.data;
   }
 
-  const results = data.results.map((result) => ({
-    title: result.title || "",
-    content: result.content || "",
-    url: result.url || "",
-    score: result.score || 0,
-  }));
+  if (!Array.isArray(results)) {
+    throw new Error(`Invalid response format: results is not an array`);
+  }
 
   if (results.length === 0) {
     logMessage(server, "info", `No results found for query: "${query}"`);
-    return createNoResultsMessage(query);
+    return JSON.stringify({
+      query,
+      results: [],
+      totalCount: 0,
+      duration: `${Date.now() - startTime}ms`
+    }, null, 2);
   }
 
+  // Format results (API returns: url, title, description)
+  const formattedResults = results.map((result: any) => ({
+    title: result.title || "",
+    content: result.description || result.content || "",
+    url: result.url || result.link || ""
+  }));
+
   const duration = Date.now() - startTime;
-  logMessage(server, "info", `Search completed: "${query}" (${searchParams}) - ${results.length} results in ${duration}ms`);
+  logMessage(server, "info", `Search completed: "${query}" - ${formattedResults.length} results in ${duration}ms`);
 
   // Return as JSON string
   return JSON.stringify({
     query,
-    results,
-    totalCount: results.length,
-    duration: `${duration}ms`,
-    page: pageno
+    results: formattedResults,
+    totalCount: formattedResults.length,
+    duration: `${duration}ms`
   }, null, 2);
 }

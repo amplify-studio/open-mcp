@@ -119,10 +119,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const result = await performWebSearch(
         server,
         args.query,
-        args.pageno,
-        args.time_range,
-        args.language,
-        args.safesearch
+        args.limit
       );
 
       return {

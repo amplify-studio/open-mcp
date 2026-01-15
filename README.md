@@ -289,6 +289,114 @@ The server connects to a Gateway API that provides:
 | Health | GET | `/health` | Health check |
 | Status | GET | `/api/status` | Service status |
 
+## HTTP Transport Mode
+
+The server supports two transport modes: **STDIO** (default) and **HTTP**.
+
+### STDIO Mode (Default)
+
+Standard MCP transport for local development and Claude Desktop integration. The server communicates via stdin/stdout.
+
+### HTTP Mode
+
+HTTP transport enables remote server deployment and multi-client connections. Uses the **Streamable HTTP** protocol from MCP specification.
+
+#### Starting HTTP Server
+
+```bash
+# Basic
+MCP_HTTP_PORT=3333 npm start
+
+# With custom gateway
+GATEWAY_URL=http://115.190.91.253:80 MCP_HTTP_PORT=3333 npm start
+
+# Background mode
+MCP_HTTP_PORT=3333 npm start &
+```
+
+#### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/mcp` | POST | Send JSON-RPC requests |
+| `/mcp` | GET | Receive SSE notifications |
+| `/mcp` | DELETE | Close session |
+
+#### Verify Connection
+
+```bash
+# Health check
+curl http://localhost:3333/health
+
+# Expected response
+# {"status":"healthy","server":"ihor-sokoliuk/mcp-searxng","version":"0.8.2","transport":"http"}
+```
+
+#### Claude Code Integration
+
+```bash
+# Add HTTP server to Claude Code
+claude mcp add --transport http open-mcp http://localhost:3333/mcp
+
+# Verify
+claude mcp list
+```
+
+#### Example curl Commands
+
+```bash
+# 1. Initialize session
+curl -X POST http://localhost:3333/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-06-18",
+      "capabilities": {},
+      "clientInfo": {"name": "test-client", "version": "1.0"}
+    }
+  }'
+
+# 2. List tools (use returned session-id)
+curl -X POST http://localhost:3333/mcp \
+  -H "Content-Type: application/json" \
+  -H "mcp-session-id: <session-id>" \
+  -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/list"}'
+
+# 3. Call search tool
+curl -X POST http://localhost:3333/mcp \
+  -H "Content-Type: application/json" \
+  -H "mcp-session-id: <session-id>" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "searxng_web_search",
+      "arguments": {"query": "test"}
+    }
+  }'
+```
+
+#### Security Considerations
+
+For production deployments:
+
+1. **DNS Rebinding Protection** - Enable `enableDnsRebindingProtection` in `http-server.ts`
+2. **Bind to localhost** - Use `127.0.0.1` instead of `0.0.0.0` for local development
+3. **Authentication** - Use API Gateway, reverse proxy, or implement auth headers
+4. **CORS** - Configure `ALLOWED_ORIGINS` environment variable
+
+```bash
+# Example: Production configuration
+MCP_HTTP_PORT=3333
+ALLOWED_ORIGINS=https://yourdomain.com
+```
+
 ## Development
 
 ```bash
