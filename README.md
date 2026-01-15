@@ -11,10 +11,9 @@ Open MCP is a comprehensive server solution that enables AI assistants (like Cla
 ## Current Features
 
 ### 🌐 Web Search
-- General web queries with pagination
-- Time-based filtering (day, month, year)
-- Language selection
-- Safe search levels
+- General web queries via Firecrawl API
+- Configurable result limit (default: 10, max: 100)
+- JSON-formatted structured output
 
 ### 📄 URL Content Reading
 - Extract web page content as text/markdown
@@ -244,13 +243,11 @@ Both tools return JSON strings for structured data parsing.
     {
       "title": "Result Title",
       "content": "Description or snippet",
-      "url": "https://example.com",
-      "score": 0.123
+      "url": "https://example.com"
     }
   ],
-  "totalCount": 10,
-  "duration": "234ms",
-  "page": 1
+  "totalCount": 1,
+  "duration": "234ms"
 }
 ```
 
@@ -284,7 +281,7 @@ The server connects to a Gateway API that provides:
 
 | API | Method | Endpoint | Description |
 |-----|--------|----------|-------------|
-| Search | GET | `/api/search/` | Web search |
+| Search | POST | `/api/firecrawl-search` | Web search via Firecrawl |
 | Read | GET | `/api/read/{url}` | Extract web content |
 | Health | GET | `/health` | Health check |
 | Status | GET | `/api/status` | Service status |
@@ -418,33 +415,57 @@ npm run build
 
 ## Docker Deployment
 
-### Quick Start
+The server can be deployed in HTTP mode using Docker for remote access.
+
+### Quick Start (HTTP Mode)
 
 ```bash
-# Clone and start services
-git clone https://github.com/amplify-studio/open-mcp.git
-cd open-mcp
-docker-compose up -d
+# Build the Docker image
+docker build -t open-mcp:latest .
+
+# Run HTTP server on port 3333
+docker run -d -p 3333:3333 \
+  -e MCP_HTTP_PORT=3333 \
+  -e GATEWAY_URL=http://115.190.91.253:80 \
+  --name open-mcp \
+  open-mcp:latest
 
 # Verify deployment
 curl http://localhost:3333/health
 ```
 
-### Services
+### Configuration
 
-| Service | Port | Description |
-|---------|------|-------------|
-| SearXNG | 8888 | Metasearch engine |
-| Reader | 8080 | Web content extractor |
-| Nginx Gateway | 3333 | Unified API gateway |
+| Environment Variable | Description | Default |
+|---------------------|-------------|---------|
+| `MCP_HTTP_PORT` | HTTP server port | 3333 |
+| `GATEWAY_URL` | Gateway API base URL | `http://115.190.91.253:80` |
+| `ALLOWED_ORIGINS` | CORS allowed origins | `*` |
 
-### API Endpoints
+### Claude Code Integration
 
-- **Search**: `GET /api/search/?q=query`
-- **Read**: `GET /api/read/https://example.com`
-- **Health**: `GET /health`
+```bash
+# Add HTTP server to Claude Code
+claude mcp add --transport http open-mcp http://your-server:3333/mcp
+```
 
-See [docker/README.md](docker/README.md) for detailed deployment guide.
+### Docker Compose (Optional)
+
+For production deployments, you can use Docker Compose to manage the service:
+
+```yaml
+services:
+  open-mcp:
+    image: open-mcp:latest
+    container_name: open-mcp
+    ports:
+      - "3333:3333"
+    environment:
+      - MCP_HTTP_PORT=3333
+      - GATEWAY_URL=http://115.190.91.253:80
+      - ALLOWED_ORIGINS=https://yourdomain.com
+    restart: unless-stopped
+```
 
 ## Contributing
 
