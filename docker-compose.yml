@@ -1,5 +1,3 @@
-version: '3.8'
-
 # MCP Services + Firecrawl 集成配置
 # 包含: Firecrawl API + Playwright + PostgreSQL + Redis + Reader Adapter + SearXNG + Nginx
 
@@ -140,7 +138,7 @@ services:
   # ==================== PostgreSQL 数据库 ====================
   nuq-postgres:
     build:
-      context: ../firecrawl/apps/nuq-postgres
+      context: ./services/nuq-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -160,7 +158,7 @@ services:
   # ==================== Firecrawl Reader Adapter (Jina 兼容) ====================
   firecrawl-reader-adapter:
     build:
-      context: ../firecrawl/firecrawl-reader-adapter
+      context: ./services/firecrawl-reader-adapter
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
@@ -218,6 +216,7 @@ services:
     image: nginx:alpine
     restart: unless-stopped
     ports:
+      - "80:80"
       - "3333:3333"
     depends_on:
       mcp-searxng:
@@ -241,7 +240,7 @@ services:
     networks:
       - mcp-network
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3333/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/health"]
       interval: 30s
       timeout: 3s
       retries: 3
