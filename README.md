@@ -1,14 +1,14 @@
 # Open MCP Search Server
 
-Looking for free web search and page reading services? Want better MCP integration? Try this project!
-
-**Doc Language:** [English](README.md) | [中文](readme/zh-CN.md)
-
 [![npm version](https://badge.fury.io/js/%40amplify-studio%2Fopen-mcp.svg)](https://www.npmjs.com/package/@amplify-studio/open-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/@amplify-studio/open-mcp)](https://www.npmjs.com/package/@amplify-studio/open-mcp)
 [![Docker pulls](https://img.shields.io/docker/pulls/amplifystudio/open-mcp)](https://hub.docker.com/r/amplifystudio/open-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/amplify-studio/open-mcp?style=social)](https://github.com/amplify-studio/open-mcp)
+
+Looking for free web search and page reading services? Want better MCP integration? Try this project!
+
+**Doc Language:** [English](README.md) | [中文](readme/zh-CN.md)
 
 Deploy your own local web search and page reading service in one click. Powered by SearXNG and Firecrawl, integrated with Claude via MCP protocol.
 
@@ -281,6 +281,40 @@ docker pull amplifystudio/open-mcp:latest
 
 #### Docker Compose
 
+**Docker Compose Architecture:**
+
+```mermaid
+graph TB
+    User[User] -->|HTTP| Nginx[nginx:alpine<br/>API Gateway:80,3333]
+    Claude[Claude Desktop/Code] -->|MCP| Nginx
+
+    Nginx -->|/api/search| SearXNG[mcp-searxng:8888<br/>Search Engine]
+    Nginx -->|/api/read| Reader[firecrawl-reader-adapter:8082<br/>Jina Compatible]
+    Nginx -->|/firecrawl| Firecrawl[firecrawl-api:3002<br/>Scraping Service]
+
+    SearXNG --> Web((Internet))
+    Reader --> Firecrawl
+    Firecrawl --> Playwright[playwright-service:3000<br/>Browser]
+    Firecrawl --> Web
+
+    Firecrawl --> Redis[(redis:6379)]
+    Firecrawl --> Postgres[(postgres:5432)]
+```
+
+**Service Overview:**
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| **nginx** | 80, 3333 | API Gateway, routes requests to internal services |
+| **mcp-searxng** | 8888 | Privacy-respecting metasearch engine |
+| **firecrawl-reader-adapter** | 8082 | Jina Reader compatible API for URL reading |
+| **firecrawl-api** | 3002 | Web scraping API with browser automation |
+| **playwright-service** | 3000 | Headless browser for dynamic content |
+| **redis** | 6379 | Rate limiting and caching |
+| **nuq-postgres** | 5432 | Data persistence |
+
+**Quick Start with Docker Compose:**
+
 ```yaml
 services:
   mcp-searxng:
@@ -292,6 +326,8 @@ services:
       # - AUTH_USERNAME=your_username
       # - AUTH_PASSWORD=your_password
 ```
+
+For full Docker Compose deployment with all 7 services, see [docker-compose.yml](https://github.com/amplify-studio/open-mcp/blob/main/docker-compose.yml).
 
 ### Option 4: Local Development
 

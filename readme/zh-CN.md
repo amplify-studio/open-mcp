@@ -1,14 +1,14 @@
 # Open MCP Search Server
 
-想找免费的搜索和页面读取服务？想要更好的 MCP 接入？来试试这个项目吧！
-
-**语言：** [English](../README.md) | [中文](README.md)
-
 [![npm 版本](https://badge.fury.io/js/%40amplify-studio%2Fopen-mcp.svg)](https://www.npmjs.com/package/@amplify-studio/open-mcp)
 [![npm 下载量](https://img.shields.io/npm/dm/@amplify-studio/open-mcp)](https://www.npmjs.com/package/@amplify-studio/open-mcp)
 [![Docker 拉取量](https://img.shields.io/docker/pulls/amplifystudio/open-mcp)](https://hub.docker.com/r/amplifystudio/open-mcp)
 [![许可证: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub 星标](https://img.shields.io/github/stars/amplify-studio/open-mcp?style=social)](https://github.com/amplify-studio/open-mcp)
+
+想找免费的搜索和页面读取服务？想要更好的 MCP 接入？来试试这个项目吧！
+
+**语言：** [English](../README.md) | [中文](README.md)
 
 一键部署您自己的本地搜索和页面读取服务。由 SearXNG 和 Firecrawl 提供支持，通过 MCP 协议与 Claude 集成。
 
@@ -317,6 +317,40 @@ docker pull amplifystudio/open-mcp:latest
 
 #### Docker Compose
 
+**Docker Compose 架构 / Architecture:**
+
+```mermaid
+graph TB
+    User[用户] -->|HTTP| Nginx[nginx:alpine<br/>API 网关:80,3333]
+    Claude[Claude Desktop/Code] -->|MCP| Nginx
+
+    Nginx -->|/api/search| SearXNG[mcp-searxng:8888<br/>搜索引擎]
+    Nginx -->|/api/read| Reader[firecrawl-reader-adapter:8082<br/>Jina兼容]
+    Nginx -->|/firecrawl| Firecrawl[firecrawl-api:3002<br/>抓取服务]
+
+    SearXNG --> Web((互联网))
+    Reader --> Firecrawl
+    Firecrawl --> Playwright[playwright-service:3000<br/>浏览器]
+    Firecrawl --> Web
+
+    Firecrawl --> Redis[(redis:6379)]
+    Firecrawl --> Postgres[(postgres:5432)]
+```
+
+**服务概览 / Service Overview:**
+
+| 服务 | 端口 | 用途 |
+|---------|------|---------|
+| **nginx** | 80, 3333 | API 网关，将请求路由到内部服务 |
+| **mcp-searxng** | 8888 | 尊重隐私的元搜索引擎 |
+| **firecrawl-reader-adapter** | 8082 | Jina Reader 兼容的 URL 读取 API |
+| **firecrawl-api** | 3002 | 带浏览器自动化的网页抓取 API |
+| **playwright-service** | 3000 | 用于动态内容的无头浏览器 |
+| **redis** | 6379 | 速率限制和缓存 |
+| **nuq-postgres** | 5432 | 数据持久化 |
+
+**使用 Docker Compose 快速开始 / Quick Start:**
+
 ```yaml
 services:
   mcp-searxng:
@@ -328,6 +362,8 @@ services:
       # - AUTH_USERNAME=your_username
       # - AUTH_PASSWORD=your_password
 ```
+
+完整的 7 服务 Docker Compose 部署，请参阅 [docker-compose.yml](https://github.com/amplify-studio/open-mcp/blob/main/docker-compose.yml)。
 
 ### 选项 4: 本地开发
 
