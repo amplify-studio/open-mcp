@@ -1,97 +1,62 @@
-# Open MCP
+# Open MCP Search Server
 
-> An open-source MCP (Model Context Protocol) server solution for AI agent integration.
+Looking for free web search and page reading services? Want better MCP integration? Try this project!
 
+**Doc Language:** [English](README.md) | [中文](readme/zh-CN.md)
+
+[![npm version](https://badge.fury.io/js/%40amplify-studio%2Fopen-mcp.svg)](https://www.npmjs.com/package/@amplify-studio/open-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/@amplify-studio/open-mcp)](https://www.npmjs.com/package/@amplify-studio/open-mcp)
+[![Docker pulls](https://img.shields.io/docker/pulls/amplifystudio/open-mcp)](https://hub.docker.com/r/amplifystudio/open-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/amplify-studio/open-mcp?style=social)](https://github.com/amplify-studio/open-mcp)
 
-## Overview
+Deploy your own local web search and page reading service in one click. Powered by SearXNG and Firecrawl, integrated with Claude via MCP protocol.
 
-Open MCP is a comprehensive server solution that enables AI assistants (like Claude) to interact with external services through the Model Context Protocol. Currently focused on web search and content extraction, with plans to expand into a full-featured AI agent platform.
+## Features
 
-## Current Features
+### MCP Tools
 
-### 🌐 Web Search
-- General web queries via Firecrawl API
-- Configurable result limit (default: 10, max: 100)
-- JSON-formatted structured output
+Tools provided to AI assistants via MCP protocol:
 
-### 📄 URL Content Reading
-- Extract web page content as text/markdown
-- Intelligent caching with TTL
-- Section extraction and pagination options
+- 🔍 **Web Search** - Search the web with pagination, time filtering, and language options
+- 📄 **URL Reading** - Extract web page content as markdown with advanced filtering
 
-## Roadmap
+### Server Features
 
-### Phase 1: Current (Search & Content)
-- ✅ Web search via Gateway API
-- ✅ URL content reading
-- ✅ Intelligent caching
+Infrastructure capabilities for deployment and performance:
 
-### Phase 2: Knowledge Base (RAG)
-- 🔄 Document indexing
-- 🔄 Semantic search
-- 🔄 Vector storage integration
+- 💾 **Smart Caching** - Automatic caching with TTL to improve performance
+- 🔄 **Dual Transport** - STDIO or HTTP modes for flexible deployment
+- 🌐 **Proxy Support** - Built-in proxy configuration with NO_PROXY bypass
 
-### Phase 3: Data Integration
-- ⏳ Database connectors
-- ⏳ API integrations
-- ⏳ File system access
+### Powered By
 
-### Phase 4: Agent Framework
-- ⏳ Tool composition
-- ⏳ Workflow orchestration
-- ⏳ Multi-agent coordination
+| Feature | Powered By |
+|---------|------------|
+| Search | [SearXNG](https://searxng.org/) - Privacy-respecting metasearch |
+| Scraping | [Firecrawl](https://www.firecrawl.dev/) - Web scraping API |
+| Protocol | [MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk) - Official implementation |
 
-## Architecture
+---
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Open MCP                             │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐            │
-│  │   Search   │  │  Content   │  │  Future    │            │
-│  │   Module   │  │   Reader   │  │  Modules   │            │
-│  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘            │
-│        │                │                │                   │
-│        └────────────────┴────────────────┘                   │
-│                         │                                    │
-│                   ┌─────▼─────┐                              │
-│                   │   Core    │                              │
-│                   │  Layer    │                              │
-│                   └─────┬─────┘                              │
-│                         │                                    │
-│  ┌──────────────────────┼──────────────────────┐            │
-│  │                      │                      │            │
-│ ▼▼                     ▼▼                    ▼▼           │
-┌─────────┐         ┌─────────┐          ┌─────────┐         │
-│  Cache  │         │ Gateway │          │ Plugins │         │
-└─────────┘         └─────────┘          └─────────┘         │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-                    ┌─────────────────┐
-                    │  Gateway API    │
-                    │  (External)     │
-                    └─────────────────┘
-```
+## Compatible Clients
 
-## Installation
+Works with any MCP client:
 
-### Option 1: From npm (Recommended)
+- **Claude Desktop** / **Claude Code** / **Cursor** / **Cline**
+- **Continue.dev**
+- **HTTP Mode** (for remote deployment)
 
-**Using Claude CLI:**
+---
+
+## Quick Start
+
+### Want to try it first?
+
+Use our hosted MCP service directly:
+
 ```bash
-claude mcp add-json -s user open-mcp '{
-  "command": "npx",
-  "args": ["-y", "@amplify-studio/open-mcp@latest"]
-}'
-```
-
-**With custom gateway:**
-```bash
-claude mcp add-json -s user open-mcp '{
+claude mcp add-json -s user mcp-searxng '{
   "command": "npx",
   "args": ["-y", "@amplify-studio/open-mcp@latest"],
   "env": {
@@ -100,52 +65,235 @@ claude mcp add-json -s user open-mcp '{
 }'
 ```
 
-### Option 2: Claude Desktop Config
+### Like it? Want to deploy yourself?
+
+Continue below for deployment guide
+
+---
+
+## Installation Methods
+
+#### Using Claude CLI (Recommended)
+
+```bash
+claude mcp add-json -s user mcp-searxng '{
+  "command": "npx",
+  "args": ["-y", "@amplify-studio/open-mcp@latest"],
+  "env": {
+    "GATEWAY_URL": "https://your-gateway-instance.com"
+  }
+}'
+```
+
+#### Using Claude Desktop Config
 
 Edit `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
-    "open-mcp": {
-      "command": "npx",
-      "args": ["-y", "@amplify-studio/open-mcp@latest"]
-    }
-  }
-}
-```
-
-**With custom gateway:**
-```json
-{
-  "mcpServers": {
-    "open-mcp": {
+    "mcp-searxng": {
       "command": "npx",
       "args": ["-y", "@amplify-studio/open-mcp@latest"],
       "env": {
-        "GATEWAY_URL": "http://115.190.91.253:80"
+        "GATEWAY_URL": "https://your-gateway-instance.com"
       }
     }
   }
 }
 ```
 
-### Option 3: From GitHub
+#### Using Continue.dev
 
-Alternative: install directly from GitHub (no npm):
+Add to your `config.json`:
 
 ```json
 {
   "mcpServers": {
-    "open-mcp": {
+    "mcp-searxng": {
       "command": "npx",
-      "args": ["-y", "github:amplify-studio/open-mcp"]
+      "args": ["-y", "@amplify-studio/open-mcp@latest"],
+      "env": {
+        "GATEWAY_URL": "https://your-gateway-instance.com"
+      }
     }
   }
 }
 ```
 
-### Option 4: Local Development (For Developers)
+#### HTTP Mode
+
+```bash
+# Start HTTP server
+MCP_HTTP_PORT=3333 GATEWAY_URL=https://your-gateway-instance.com npx @amplify-studio/open-mcp@latest
+
+# Connect from Claude Code
+claude mcp add --transport http mcp-searxng http://localhost:3333/mcp
+```
+
+## Usage
+
+### Web Search Tool
+
+**Tool Name:** `searxng_web_search`
+
+**Parameters:**
+- `query` (string, required): The search query
+- `limit` (number, optional): Maximum results (1-100, default: 10)
+
+**Example:**
+
+```json
+{
+  "query": "Model Context Protocol",
+  "limit": 5
+}
+```
+
+**Response:**
+
+```json
+{
+  "query": "Model Context Protocol",
+  "results": [
+    {
+      "title": "Result Title",
+      "content": "Description or snippet...",
+      "url": "https://example.com"
+    }
+  ],
+  "totalCount": 5,
+  "duration": "234ms"
+}
+```
+
+### URL Reading Tool
+
+**Tool Name:** `web_url_read`
+
+**Parameters:**
+- `url` (string, required): The URL to fetch
+- `startChar` (number, optional): Starting character position (default: 0)
+- `maxLength` (number, optional): Maximum characters to return
+- `section` (string, optional): Extract content under specific heading
+- `paragraphRange` (string, optional): Paragraph range like '1-5', '3', '10-'
+- `readHeadings` (boolean, optional): Return only headings (default: false)
+
+**Example:**
+
+```json
+{
+  "url": "https://example.com/article",
+  "maxLength": 5000,
+  "section": "Introduction"
+}
+```
+
+**Response:**
+
+```json
+{
+  "url": "https://example.com/article",
+  "content": "# Article Content\n\n...",
+  "charCount": 1500,
+  "duration": "456ms",
+  "cached": false
+}
+```
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `GATEWAY_URL` | No | `http://115.190.91.253:80` | Gateway API URL |
+| `AUTH_USERNAME` | No | - | HTTP Basic Auth username |
+| `AUTH_PASSWORD` | No | - | HTTP Basic Auth password |
+| `USER_AGENT` | No | - | Custom User-Agent header |
+| `HTTP_PROXY` | No | - | Proxy URL for HTTP requests |
+| `HTTPS_PROXY` | No | - | Proxy URL for HTTPS requests |
+| `NO_PROXY` | No | - | Comma-separated bypass list |
+| `MCP_HTTP_PORT` | No | - | Enable HTTP transport on specified port |
+
+### Full Configuration Example
+
+```json
+{
+  "mcpServers": {
+    "mcp-searxng": {
+      "command": "npx",
+      "args": ["-y", "@amplify-studio/open-mcp@latest"],
+      "env": {
+        "GATEWAY_URL": "https://search.example.com",
+        "AUTH_USERNAME": "your_username",
+        "AUTH_PASSWORD": "your_password",
+        "USER_AGENT": "MyBot/1.0",
+        "HTTP_PROXY": "http://proxy.company.com:8080",
+        "HTTPS_PROXY": "http://proxy.company.com:8080",
+        "NO_PROXY": "localhost,127.0.0.1,.local,.internal"
+      }
+    }
+  }
+}
+```
+
+## Installation Methods
+
+### Option 1: NPX (Recommended)
+
+```bash
+npx -y @amplify-studio/open-mcp@latest
+```
+
+### Option 2: Global Install
+
+```bash
+npm install -g @amplify-studio/open-mcp
+mcp-searxng
+```
+
+### Option 3: Docker
+
+#### Using Pre-built Image
+
+```bash
+docker pull amplifystudio/open-mcp:latest
+```
+
+```json
+{
+  "mcpServers": {
+    "mcp-searxng": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "GATEWAY_URL",
+        "amplifystudio/open-mcp:latest"
+      ],
+      "env": {
+        "GATEWAY_URL": "https://your-gateway-instance.com"
+      }
+    }
+  }
+}
+```
+
+#### Docker Compose
+
+```yaml
+services:
+  mcp-searxng:
+    image: amplifystudio/open-mcp:latest
+    stdin_open: true
+    environment:
+      - GATEWAY_URL=https://your-gateway-instance.com
+      # Add optional variables as needed
+      # - AUTH_USERNAME=your_username
+      # - AUTH_PASSWORD=your_password
+```
+
+### Option 4: Local Development
 
 ```bash
 # Clone the repository
@@ -162,156 +310,24 @@ npm run build
 node dist/index.js
 ```
 
-**Claude Desktop Config** (local development):
-```json
-{
-  "mcpServers": {
-    "open-mcp": {
-      "command": "node",
-      "args": ["/path/to/open-mcp/dist/index.js"]
-    }
-  }
-}
-```
-
-### Option 5: Test with MCP Inspector
-
-```bash
-cd open-mcp
-npm run inspector
-# Visit http://localhost:6274 to test
-```
-
-### Option 6: Global Install (Advanced)
-
-```bash
-cd open-mcp
-npm link
-# Then use: open-mcp
-```
-
-## Updating
-
-To update to the latest version:
-
-### Using Claude CLI
-
-```bash
-# Remove old version
-claude mcp remove open-mcp
-
-# Install latest version
-claude mcp add-json -s user open-mcp '{
-  "command": "npx",
-  "args": ["-y", "@amplify-studio/open-mcp@latest"]
-}'
-```
-
-### Clear npx Cache (Optional)
-
-If you encounter issues after updating:
-
-```bash
-# Clear npx cache
-npm cache clean --force
-
-# Then reinstall
-claude mcp remove open-mcp
-claude mcp add-json -s user open-mcp '{
-  "command": "npx",
-  "args": ["-y", "@amplify-studio/open-mcp@latest"]
-}'
-```
-
-### Check Current Version
-
-```bash
-# View your configuration
-cat ~/Library/Application\ Support/Claude/claude_desktop_config.json
-```
-
-## Output Format
-
-Both tools return JSON strings for structured data parsing.
-
-### Web Search Output
-
-```json
-{
-  "query": "search term",
-  "results": [
-    {
-      "title": "Result Title",
-      "content": "Description or snippet",
-      "url": "https://example.com"
-    }
-  ],
-  "totalCount": 1,
-  "duration": "234ms"
-}
-```
-
-### URL Read Output
-
-```json
-{
-  "url": "https://example.com",
-  "content": "Page content in markdown/text format...",
-  "charCount": 1500,
-  "duration": "456ms",
-  "cached": false
-}
-```
-
-## Configuration
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `GATEWAY_URL` | No | `http://115.190.91.253:80` | Gateway API base URL |
-| `AUTH_USERNAME` | No | - | Basic auth username |
-| `AUTH_PASSWORD` | No | - | Basic auth password |
-| `HTTP_PROXY` | No | - | Proxy URL for HTTP requests |
-| `HTTPS_PROXY` | No | - | Proxy URL for HTTPS requests |
-| `NO_PROXY` | No | - | Comma-separated bypass list |
-| `MCP_HTTP_PORT` | No | - | Enable HTTP transport on specified port |
-
-## Gateway API
-
-The server connects to a Gateway API that provides:
-
-| API | Method | Endpoint | Description |
-|-----|--------|----------|-------------|
-| Search | POST | `/api/firecrawl-search` | Web search via Firecrawl |
-| Read | GET | `/api/read/{url}` | Extract web content |
-| Health | GET | `/health` | Health check |
-| Status | GET | `/api/status` | Service status |
-
 ## HTTP Transport Mode
 
-The server supports two transport modes: **STDIO** (default) and **HTTP**.
+The server supports HTTP transport for remote deployment.
 
-### STDIO Mode (Default)
-
-Standard MCP transport for local development and Claude Desktop integration. The server communicates via stdin/stdout.
-
-### HTTP Mode
-
-HTTP transport enables remote server deployment and multi-client connections. Uses the **Streamable HTTP** protocol from MCP specification.
-
-#### Starting HTTP Server
+### Starting HTTP Server
 
 ```bash
 # Basic
-MCP_HTTP_PORT=3333 npm start
+MCP_HTTP_PORT=3333 npx @amplify-studio/open-mcp@latest
 
-# With custom gateway
-GATEWAY_URL=http://115.190.91.253:80 MCP_HTTP_PORT=3333 npm start
+# With custom Gateway
+MCP_HTTP_PORT=3333 GATEWAY_URL=https://your-gateway-instance.com npx @amplify-studio/open-mcp@latest
 
 # Background mode
-MCP_HTTP_PORT=3333 npm start &
+MCP_HTTP_PORT=3333 npx @amplify-studio/open-mcp@latest &
 ```
 
-#### API Endpoints
+### API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -320,27 +336,17 @@ MCP_HTTP_PORT=3333 npm start &
 | `/mcp` | GET | Receive SSE notifications |
 | `/mcp` | DELETE | Close session |
 
-#### Verify Connection
+### Verify Connection
 
 ```bash
 # Health check
 curl http://localhost:3333/health
 
 # Expected response
-# {"status":"healthy","server":"ihor-sokoliuk/mcp-searxng","version":"0.8.2","transport":"http"}
+# {"status":"healthy","server":"mcp-searxng","version":"0.9.0","transport":"http"}
 ```
 
-#### Claude Code Integration
-
-```bash
-# Add HTTP server to Claude Code
-claude mcp add --transport http open-mcp http://localhost:3333/mcp
-
-# Verify
-claude mcp list
-```
-
-#### Example curl Commands
+### Example curl Commands
 
 ```bash
 # 1. Initialize session
@@ -374,27 +380,14 @@ curl -X POST http://localhost:3333/mcp \
     "method": "tools/call",
     "params": {
       "name": "searxng_web_search",
-      "arguments": {"query": "test"}
+      "arguments": {"query": "test", "limit": 5}
     }
   }'
 ```
 
-#### Security Considerations
-
-For production deployments:
-
-1. **DNS Rebinding Protection** - Enable `enableDnsRebindingProtection` in `http-server.ts`
-2. **Bind to localhost** - Use `127.0.0.1` instead of `0.0.0.0` for local development
-3. **Authentication** - Use API Gateway, reverse proxy, or implement auth headers
-4. **CORS** - Configure `ALLOWED_ORIGINS` environment variable
-
-```bash
-# Example: Production configuration
-MCP_HTTP_PORT=3333
-ALLOWED_ORIGINS=https://yourdomain.com
-```
-
 ## Development
+
+### Setup
 
 ```bash
 # Install dependencies
@@ -406,6 +399,9 @@ npm run watch
 # Run tests
 npm test
 
+# Generate coverage report
+npm run test:coverage
+
 # Test with MCP Inspector
 npm run inspector
 
@@ -413,76 +409,104 @@ npm run inspector
 npm run build
 ```
 
-## Docker Deployment
-
-The server can be deployed in HTTP mode using Docker for remote access.
-
-### Quick Start (HTTP Mode)
+### Testing
 
 ```bash
-# Build the Docker image
-docker build -t open-mcp:latest .
+# Run all tests
+npm test
 
-# Run HTTP server on port 3333
-docker run -d -p 3333:3333 \
-  -e MCP_HTTP_PORT=3333 \
-  -e GATEWAY_URL=http://115.190.91.253:80 \
-  --name open-mcp \
-  open-mcp:latest
+# Run coverage report
+npm run test:coverage
 
-# Verify deployment
-curl http://localhost:3333/health
+# Test specific file
+npx tsx __tests__/unit/search.test.ts
 ```
 
-### Configuration
+## Updating
 
-| Environment Variable | Description | Default |
-|---------------------|-------------|---------|
-| `MCP_HTTP_PORT` | HTTP server port | 3333 |
-| `GATEWAY_URL` | Gateway API base URL | `http://115.190.91.253:80` |
-| `ALLOWED_ORIGINS` | CORS allowed origins | `*` |
-
-### Claude Code Integration
+### Using Claude CLI
 
 ```bash
-# Add HTTP server to Claude Code
-claude mcp add --transport http open-mcp http://your-server:3333/mcp
+# Remove old version
+claude mcp remove mcp-searxng
+
+# Install latest version
+claude mcp add-json -s user mcp-searxng '{
+  "command": "npx",
+  "args": ["-y", "@amplify-studio/open-mcp@latest"],
+  "env": {
+    "GATEWAY_URL": "https://your-gateway-instance.com"
+  }
+}'
 ```
 
-### Docker Compose (Optional)
+### Clear npx Cache
 
-For production deployments, you can use Docker Compose to manage the service:
+If you encounter issues after updating:
 
-```yaml
-services:
-  open-mcp:
-    image: open-mcp:latest
-    container_name: open-mcp
-    ports:
-      - "3333:3333"
-    environment:
-      - MCP_HTTP_PORT=3333
-      - GATEWAY_URL=http://115.190.91.253:80
-      - ALLOWED_ORIGINS=https://yourdomain.com
-    restart: unless-stopped
+```bash
+npm cache clean --force
+claude mcp remove mcp-searxng
+claude mcp add-json -s user mcp-searxng '{
+  "command": "npx",
+  "args": ["-y", "@amplify-studio/open-mcp@latest"],
+  "env": {
+    "GATEWAY_URL": "https://your-gateway-instance.com"
+  }
+}'
 ```
 
 ## Contributing
 
-We're building an open-source community for AI agent infrastructure. Contributions welcome!
+We welcome contributions! Please follow these guidelines:
 
 - Fork the repository
 - Create a feature branch
 - Make your changes
 - Submit a pull request
 
+### Coding Standards
+
+- Use TypeScript with strict type safety
+- Follow existing error handling patterns
+- Write concise, informative error messages
+- Include unit tests for new functionality
+- Maintain 90%+ test coverage
+
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) for details.
 
-## Credits
+## Credits & Acknowledgments
 
-Based on [mcp-searxng](https://github.com/ihor-sokoliuk/mcp-searxng) by Ihor Sokoliuk
+This project is a fork of [mcp-searxng](https://github.com/ihor-sokoliuk/mcp-searxng) by [Ihor Sokoliuk](https://github.com/ihor-sokoliuk), adapted and enhanced with additional features and improvements.
+
+### Key Dependencies
+
+This project is built upon these excellent open-source projects:
+
+| Project | Purpose | License |
+|---------|---------|---------|
+| [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk) | Official MCP TypeScript SDK | MIT |
+| [node-html-markdown](https://github.com/crosstype/node-html-markdown) | HTML to Markdown conversion | MIT |
+| [undici](https://github.com/nodejs/undici) | HTTP client with proxy support | MIT |
+| [express](https://github.com/expressjs/express) | HTTP server framework | MIT |
+| [cors](https://github.com/expressjs/cors) | CORS middleware | MIT |
+
+### Related Projects
+
+Special thanks to these amazing projects:
+
+- [mcp-searxng](https://github.com/ihor-sokoliuk/mcp-searxng) - Original project that we forked from, created by [Ihor Sokoliuk](https://github.com/ihor-sokoliuk)
+- [Model Context Protocol](https://modelcontextprotocol.io/) - Official MCP documentation
+- [SearXNG](https://searxng.org/) - Privacy-respecting metasearch engine
+- [Firecrawl](https://www.firecrawl.dev/) - Web scraping and crawling API
+
+---
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=amplify-studio/open-mcp&type=Date)](https://star-history.com/#amplify-studio/open-mcp&Date)
 
 ---
 
