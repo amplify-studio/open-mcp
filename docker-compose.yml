@@ -196,6 +196,34 @@ services:
     mem_limit: 512M
     logging: *logging-small
 
+  # ==================== PaddleOCR OCR 服务 ====================
+  paddleocr-service:
+    build:
+      context: ./services/paddleocr
+      dockerfile: Dockerfile
+    container_name: paddleocr-service
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - MODEL_NAME=PP-OCRv4_mobile_ch
+      - USE_GPU=false
+      - WORKERS=1
+      - LOG_LEVEL=info
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./models:/root/.paddleocr
+    logging: *logging-small
+    cpus: 0.5
+    mem_limit: 1G
+
   # ==================== Nginx API 网关 ====================
   nginx:
     image: nginx:alpine
@@ -238,17 +266,19 @@ networks:
 volumes:
   searxng-cache:
   postgres-data:
+  models:
 
 # ==================== 说明 ====================
 #
-# 本配置包含 7 个服务：
+# 本配置包含 8 个服务：
 # 1. playwright-service - 浏览器自动化 (支持动态内容)
 # 2. firecrawl-api - Firecrawl API 服务器 (3002)
 # 3. redis - Rate Limiting 和缓存
 # 4. nuq-postgres - 数据库
 # 5. firecrawl-reader-adapter - Jina Reader 兼容接口 (8082)
 # 6. mcp-searxng - 搜索引擎服务 (8888)
-# 7. nginx - API 网关 (80, 3333)
+# 7. paddleocr-service - OCR 文字提取服务 (8080)
+# 8. nginx - API 网关 (80, 3333)
 #
 # API 端点（通过 nginx 访问）：
 # - 搜索: http://localhost:80/api/search/

@@ -83,3 +83,42 @@ export const READ_URL_TOOL: Tool = {
     required: ["url"],
   },
 };
+
+export const IMAGE_OCR_TOOL: Tool = {
+  name: "image_ocr",
+  description:
+    "Extract text from images using OCR (Optical Character Recognition). " +
+    "Supports screenshots, scanned documents, and photos. " +
+    "Returns extracted text with confidence scores and processing metadata. " +
+    "Supports Chinese and English with auto-detection.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      image: {
+        type: "string",
+        description: "Image file path, URL, or base64 data URI",
+      },
+      lang: {
+        type: "string",
+        enum: ["auto", "ch", "en"],
+        description: "Language for OCR: auto-detect, Chinese, or English",
+        default: "auto",
+      },
+    },
+    required: ["image"],
+  },
+};
+
+export interface ImageOCRArgs {
+  image: string;
+  lang?: 'auto' | 'ch' | 'en';
+}
+
+export function isImageOCRArgs(args: unknown): args is ImageOCRArgs {
+  return (
+    typeof args === "object" &&
+    args !== null &&
+    "image" in args &&
+    typeof (args as { image: string }).image === "string"
+  );
+}

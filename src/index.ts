@@ -12,13 +12,14 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 // Import modularized functionality
-import { WEB_SEARCH_TOOL, READ_URL_TOOL, isSearXNGWebSearchArgs } from "./types.js";
+import { WEB_SEARCH_TOOL, READ_URL_TOOL, IMAGE_OCR_TOOL, isSearXNGWebSearchArgs, isImageOCRArgs } from "./types.js";
 import { logMessage, setLogLevel } from "./logging.js";
 import { performWebSearch } from "./search.js";
 import { fetchAndConvertToMarkdown } from "./url-reader.js";
 import { createConfigResource, createHelpResource } from "./resources.js";
 import { createHttpServer } from "./http-server.js";
 import { validateEnvironment as validateEnv } from "./error-handler.js";
+import { extractTextFromImage } from "./tools/image-ocr.js";
 
 // Use a static version string that will be updated by the version script
 const packageVersion = "0.9.0";
@@ -92,6 +93,10 @@ const server = new Server(
           description: READ_URL_TOOL.description,
           schema: READ_URL_TOOL.inputSchema,
         },
+        image_ocr: {
+          description: IMAGE_OCR_TOOL.description,
+          schema: IMAGE_OCR_TOOL.inputSchema,
+        },
       },
     },
   }
@@ -101,7 +106,7 @@ const server = new Server(
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   logMessage(server, "debug", "Handling list_tools request");
   return {
-    tools: [WEB_SEARCH_TOOL, READ_URL_TOOL],
+    tools: [WEB_SEARCH_TOOL, READ_URL_TOOL, IMAGE_OCR_TOOL],
   };
 });
 
@@ -150,6 +155,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           {
             type: "text",
             text: result,
+          },
+        ],
+      };
+    } else if (name === "image_ocr") {
+      if (!isImageOCRArgs(args)) {
+        throw new Error("Invalid arguments for image OCR");
+      }
+
+      const result = await extractTextFromImage(args);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
           },
         ],
       };
