@@ -237,6 +237,63 @@ claude mcp add --transport http mcp-searxng http://localhost:3333/mcp
 }
 ```
 
+### 图片 OCR 工具 / Image OCR Tool
+
+**工具名称：** `image_ocr`
+
+**参数：**
+- `image` (string, required): 图片文件路径、URL 或 base64 数据
+
+**示例：**
+
+```json
+{
+  "image": "/path/to/image.png"
+}
+```
+
+**响应：** 从图片中提取的文本
+
+### 图片理解工具 / Image Understanding Tool
+
+**工具名称：** `image_understand`
+
+**参数：**
+- `files` (array, required): 文件路径、URL 或 base64 数据
+- `prompt` (string, required): 问题或指令
+- `thinking` (boolean, optional): 启用深度思考模式
+
+**示例：**
+
+```json
+{
+  "files": ["/path/to/image.png"],
+  "prompt": "这张图片里有什么物体？",
+  "thinking": false
+}
+```
+
+**响应：** 文本描述或答案
+
+### 图片生成工具 / Image Generation Tool
+
+**工具名称：** `image_generate`
+
+**参数：**
+- `prompt` (string, required): 图片描述
+- `size` (string, optional): 图片大小（默认："1024x1024"）
+
+**示例：**
+
+```json
+{
+  "prompt": "山上美丽的日落",
+  "size": "1024x1024"
+}
+```
+
+**响应：** 图片 URL
+
 ## 配置
 
 ### 环境变量
@@ -250,7 +307,10 @@ claude mcp add --transport http mcp-searxng http://localhost:3333/mcp
 | `HTTP_PROXY` | 否 | - | HTTP 请求的代理 URL |
 | `HTTPS_PROXY` | 否 | - | HTTPS 请求的代理 URL |
 | `NO_PROXY` | 否 | - | 逗号分隔的绕过列表 |
-| `MCP_HTTP_PORT` | 否 | - | 在指定端口上启用 HTTP 传输 |
+| `MCP_HTTP_PORT` | 否 | - | 在指定端口启用 HTTP 传输 |
+| `ZHIPUAI_API_KEY` | 否* | - | 智谱 AI API 密钥，用于图片工具 |
+
+*使用 image_ocr、image_understand 或 image_generate 工具时必需
 
 ### 完整配置示例
 

@@ -150,3 +150,10 @@ export function validateEnvironment(): string | null {
 
   return `⚠️ Configuration Issues: ${issues.join(', ')}. GATEWAY_URL is optional (defaults to http://115.190.91.253:80)`;
 }
+
+export function validateZhipuAI(): string | null {
+  if (!process.env.ZHIPUAI_API_KEY) {
+    console.warn('WARNING: ZHIPUAI_API_KEY not set. Image understanding and generation tools will not work.');
+  }
+  return null;
+}

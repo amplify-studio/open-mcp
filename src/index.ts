@@ -12,13 +12,26 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 // Import modularized functionality
-import { WEB_SEARCH_TOOL, READ_URL_TOOL, isSearXNGWebSearchArgs } from "./types.js";
+import {
+  WEB_SEARCH_TOOL,
+  READ_URL_TOOL,
+  IMAGE_OCR_TOOL,
+  IMAGE_UNDERSTAND_TOOL,
+  IMAGE_GENERATE_TOOL,
+  isSearXNGWebSearchArgs,
+  isImageOCRArgs,
+  isImageUnderstandArgs,
+  isImageGenerateArgs
+} from "./types.js";
 import { logMessage, setLogLevel } from "./logging.js";
 import { performWebSearch } from "./search.js";
 import { fetchAndConvertToMarkdown } from "./url-reader.js";
+import { extractTextFromImage } from "./tools/image-ocr.js";
+import { understandImage } from "./tools/image-understand.js";
+import { generateImage } from "./tools/image-generate.js";
 import { createConfigResource, createHelpResource } from "./resources.js";
 import { createHttpServer } from "./http-server.js";
-import { validateEnvironment as validateEnv } from "./error-handler.js";
+import { validateEnvironment as validateEnv, validateZhipuAI } from "./error-handler.js";
 
 // Use a static version string that will be updated by the version script
 const packageVersion = "0.9.0";
@@ -92,6 +105,18 @@ const server = new Server(
           description: READ_URL_TOOL.description,
           schema: READ_URL_TOOL.inputSchema,
         },
+        image_ocr: {
+          description: IMAGE_OCR_TOOL.description,
+          schema: IMAGE_OCR_TOOL.inputSchema,
+        },
+        image_understand: {
+          description: IMAGE_UNDERSTAND_TOOL.description,
+          schema: IMAGE_UNDERSTAND_TOOL.inputSchema,
+        },
+        image_generate: {
+          description: IMAGE_GENERATE_TOOL.description,
+          schema: IMAGE_GENERATE_TOOL.inputSchema,
+        },
       },
     },
   }
@@ -101,7 +126,13 @@ const server = new Server(
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   logMessage(server, "debug", "Handling list_tools request");
   return {
-    tools: [WEB_SEARCH_TOOL, READ_URL_TOOL],
+    tools: [
+      WEB_SEARCH_TOOL,
+      READ_URL_TOOL,
+      IMAGE_OCR_TOOL,
+      IMAGE_UNDERSTAND_TOOL,
+      IMAGE_GENERATE_TOOL
+    ],
   };
 });
 
@@ -111,54 +142,66 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   logMessage(server, "debug", `Handling call_tool request: ${name}`);
 
   try {
-    if (name === "searxng_web_search") {
-      if (!isSearXNGWebSearchArgs(args)) {
-        throw new Error("Invalid arguments for web search");
+    let result: string;
+
+    switch (name) {
+      case "searxng_web_search": {
+        if (!isSearXNGWebSearchArgs(args)) {
+          throw new Error("Invalid arguments for web search");
+        }
+        result = await performWebSearch(server, args.query, args.limit);
+        break;
       }
 
-      const result = await performWebSearch(
-        server,
-        args.query,
-        args.limit
-      );
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: result,
-          },
-        ],
-      };
-    } else if (name === "web_url_read") {
-      if (!isWebUrlReadArgs(args)) {
-        throw new Error("Invalid arguments for URL reading");
+      case "web_url_read": {
+        if (!isWebUrlReadArgs(args)) {
+          throw new Error("Invalid arguments for URL reading");
+        }
+        const paginationOptions = {
+          startChar: args.startChar,
+          maxLength: args.maxLength,
+          section: args.section,
+          paragraphRange: args.paragraphRange,
+          readHeadings: args.readHeadings,
+        };
+        result = await fetchAndConvertToMarkdown(server, args.url, 10000, paginationOptions);
+        break;
       }
 
-      const paginationOptions = {
-        startChar: args.startChar,
-        maxLength: args.maxLength,
-        section: args.section,
-        paragraphRange: args.paragraphRange,
-        readHeadings: args.readHeadings,
-      };
+      case "image_ocr": {
+        if (!isImageOCRArgs(args)) {
+          throw new Error("Invalid arguments for image OCR");
+        }
+        result = await extractTextFromImage(args);
+        break;
+      }
 
-      const result = await fetchAndConvertToMarkdown(server, args.url, 10000, paginationOptions);
+      case "image_understand": {
+        if (!isImageUnderstandArgs(args)) {
+          throw new Error("Invalid arguments for image understanding");
+        }
+        result = await understandImage(args);
+        break;
+      }
 
-      return {
-        content: [
-          {
-            type: "text",
-            text: result,
-          },
-        ],
-      };
-    } else {
-      throw new Error(`Unknown tool: ${name}`);
+      case "image_generate": {
+        if (!isImageGenerateArgs(args)) {
+          throw new Error("Invalid arguments for image generation");
+        }
+        result = await generateImage(args);
+        break;
+      }
+
+      default:
+        throw new Error(`Unknown tool: ${name}`);
     }
+
+    return {
+      content: [{ type: "text", text: result }],
+    };
   } catch (error) {
-    logMessage(server, "error", `Tool execution error: ${error instanceof Error ? error.message : String(error)}`, { 
-      tool: name, 
+    logMessage(server, "error", `Tool execution error: ${error instanceof Error ? error.message : String(error)}`, {
+      tool: name,
       args: args,
       error: error instanceof Error ? error.stack : String(error)
     });
@@ -237,6 +280,9 @@ async function main() {
     console.error(`❌ ${validationError}`);
     process.exit(1);
   }
+
+  // Validate Zhipu AI (warning only, don't block startup)
+  validateZhipuAI();
 
   // Check for HTTP transport mode
   const httpPort = process.env.MCP_HTTP_PORT;

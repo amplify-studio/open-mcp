@@ -83,3 +83,134 @@ export const READ_URL_TOOL: Tool = {
     required: ["url"],
   },
 };
+
+export const IMAGE_OCR_TOOL: Tool = {
+  name: "image_ocr",
+  description:
+    "Perform OCR (Optical Character Recognition) on images using PaddleOCR. " +
+    "Extracts text from image files (supports PNG, JPG, JPEG, BMP, GIF formats). " +
+    "Use this when you need to extract text from screenshots, scanned documents, or other images containing text.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      imageFile: {
+        type: "string",
+        description: "Path to the image file to perform OCR on",
+      },
+    },
+    required: ["imageFile"],
+  },
+};
+
+export const IMAGE_UNDERSTAND_TOOL: Tool = {
+  name: "image_understand",
+  description:
+    "Understand and analyze images, videos, and documents using Zhipu GLM-4.6V-Flash model. " +
+    "Supports visual Q&A, content description, OCR, document parsing, video understanding, " +
+    "and frontend code replication from screenshots. " +
+    "Accepts file paths, URLs, or base64 data. " +
+    "Use this when you need to extract information from visual content or answer questions about images/videos.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      files: {
+        type: "array",
+        items: { type: "string" },
+        description: "Array of file paths, URLs, or base64 data (images, videos, PDFs, etc.)",
+      },
+      prompt: {
+        type: "string",
+        description: "Question or instruction for the visual content analysis",
+      },
+      thinking: {
+        type: "boolean",
+        description: "Enable deep thinking mode for complex reasoning (default: false)",
+        default: false,
+      },
+    },
+    required: ["files", "prompt"],
+  },
+};
+
+export const IMAGE_GENERATE_TOOL: Tool = {
+  name: "image_generate",
+  description:
+    "Generate images from text descriptions using Zhipu Cogview-3-Flash model. " +
+    "Supports multiple resolutions. " +
+    "Use this when you need to create visual content from text prompts.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      prompt: {
+        type: "string",
+        description: "Text description of the image to generate",
+      },
+      size: {
+        type: "string",
+        enum: ["1024x1024", "768x1344", "864x1152", "1344x768", "1152x864", "1440x720", "720x1440"],
+        description: "Image size (default: 1024x1024)",
+        default: "1024x1024",
+      },
+    },
+    required: ["prompt"],
+  },
+};
+
+export interface ImageOCRArgs {
+  imageFile: string;
+}
+
+export interface ImageUnderstandArgs {
+  files: string[];
+  prompt: string;
+  thinking?: boolean;
+}
+
+export interface ImageGenerateArgs {
+  prompt: string;
+  size?: string;
+}
+
+function hasProperty<T extends string>(
+  args: unknown,
+  prop: T,
+  type: 'string' | 'number' | 'boolean' | 'object'
+): boolean {
+  return (
+    typeof args === "object" &&
+    args !== null &&
+    prop in args &&
+    typeof (args as Record<T, unknown>)[prop] === type
+  );
+}
+
+export function isImageOCRArgs(args: unknown): args is ImageOCRArgs {
+  return hasProperty(args, 'imageFile', 'string');
+}
+
+export function isImageUnderstandArgs(args: unknown): args is ImageUnderstandArgs {
+  if (
+    !hasProperty(args, 'prompt', 'string') ||
+    !hasProperty(args, 'files', 'object')
+  ) {
+    return false;
+  }
+
+  const files = (args as { files: unknown }).files;
+  return Array.isArray(files);
+}
+
+export function isImageGenerateArgs(args: unknown): args is ImageGenerateArgs {
+  return hasProperty(args, 'prompt', 'string');
+}
+
+export function isWebUrlReadArgs(args: unknown): args is {
+  url: string;
+  startChar?: number;
+  maxLength?: number;
+  section?: string;
+  paragraphRange?: string;
+  readHeadings?: boolean;
+} {
+  return hasProperty(args, 'url', 'string');
+}

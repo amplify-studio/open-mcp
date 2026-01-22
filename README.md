@@ -201,6 +201,63 @@ claude mcp add --transport http mcp-searxng http://localhost:3333/mcp
 }
 ```
 
+### Image OCR Tool
+
+**Tool Name:** `image_ocr`
+
+**Parameters:**
+- `image` (string, required): Image file path, URL, or base64 data
+
+**Example:**
+
+```json
+{
+  "image": "/path/to/image.png"
+}
+```
+
+**Response:** Extracted text from the image
+
+### Image Understanding Tool
+
+**Tool Name:** `image_understand`
+
+**Parameters:**
+- `files` (array, required): File paths, URLs, or base64 data
+- `prompt` (string, required): Question or instruction
+- `thinking` (boolean, optional): Enable deep thinking mode
+
+**Example:**
+
+```json
+{
+  "files": ["/path/to/image.png"],
+  "prompt": "What objects are in this image?",
+  "thinking": false
+}
+```
+
+**Response:** Text description or answer
+
+### Image Generation Tool
+
+**Tool Name:** `image_generate`
+
+**Parameters:**
+- `prompt` (string, required): Image description
+- `size` (string, optional): Image size (default: "1024x1024")
+
+**Example:**
+
+```json
+{
+  "prompt": "A beautiful sunset over mountains",
+  "size": "1024x1024"
+}
+```
+
+**Response:** Image URL
+
 ## Configuration
 
 ### Environment Variables
@@ -215,6 +272,9 @@ claude mcp add --transport http mcp-searxng http://localhost:3333/mcp
 | `HTTPS_PROXY` | No | - | Proxy URL for HTTPS requests |
 | `NO_PROXY` | No | - | Comma-separated bypass list |
 | `MCP_HTTP_PORT` | No | - | Enable HTTP transport on specified port |
+| `ZHIPUAI_API_KEY` | No* | - | Zhipu AI API key for image tools |
+
+*Required when using image_ocr, image_understand, or image_generate tools
 
 ### Full Configuration Example
 
