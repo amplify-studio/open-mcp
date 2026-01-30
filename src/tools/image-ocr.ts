@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { detectFileType } from '../utils/file-helper.js';
 import type { ImageOCRArgs } from '../types.js';
 
 interface OCRResult {
@@ -12,17 +13,9 @@ interface OCRResult {
 }
 
 const SUPPORTED_FORMATS = new Set(['png', 'jpg', 'jpeg', 'bmp', 'gif']);
-const DEFAULT_MAX_SIZE = 10485760; // 10MB
+const MAX_IMAGE_SIZE = 10485760; // 10MB
 const LOW_CONFIDENCE_THRESHOLD = 0.5;
 const DEFAULT_CONFIDENCE = 0.9;
-
-/**
- * Extract file extension from path
- */
-function getFileExtension(imagePath: string): string | null {
-  const ext = imagePath.split('.').pop()?.toLowerCase() || null;
-  return ext;
-}
 
 /**
  * Check if path is a local file
@@ -34,12 +27,19 @@ function isLocalFile(imagePath: string): boolean {
 }
 
 /**
+ * Get file extension from path
+ */
+function getFileExtension(imagePath: string): string {
+  return imagePath.split('.').pop()?.toLowerCase() ?? '';
+}
+
+/**
  * Validate image file format and size
  */
 async function validateImage(imagePath: string): Promise<void> {
   const ext = getFileExtension(imagePath);
 
-  if (!ext || !SUPPORTED_FORMATS.has(ext)) {
+  if (!SUPPORTED_FORMATS.has(ext)) {
     throw new Error(
       `Unsupported image format: ${ext}. Supported formats: ${Array.from(SUPPORTED_FORMATS).join(', ')}`
     );
@@ -51,7 +51,7 @@ async function validateImage(imagePath: string): Promise<void> {
 
   try {
     const buffer = await readFile(imagePath);
-    const maxSize = parseInt(process.env.MAX_IMAGE_SIZE || String(DEFAULT_MAX_SIZE), 10);
+    const maxSize = Number(process.env.MAX_IMAGE_SIZE) || MAX_IMAGE_SIZE;
 
     if (buffer.length > maxSize) {
       throw new Error(
@@ -94,13 +94,6 @@ async function callPaddleOCR(imagePath: string): Promise<OCRResult> {
 }
 
 /**
- * Format processing time
- */
-function formatProcessingTime(startTime: number): string {
-  return ((Date.now() - startTime) / 1000).toFixed(2) + 's';
-}
-
-/**
  * Main function: Extract text from image using OCR
  */
 export async function extractTextFromImage(
@@ -118,18 +111,21 @@ export async function extractTextFromImage(
     await validateImage(imageFile);
     const result = await callPaddleOCR(imageFile);
 
+    const processingTime = `${((Date.now() - startTime) / 1000).toFixed(2)}s`;
+    const confidence = result.confidence || DEFAULT_CONFIDENCE;
+    const warning = confidence < LOW_CONFIDENCE_THRESHOLD
+      ? 'Low confidence score, image quality may be poor'
+      : undefined;
+
     const response: OCRResult = {
       success: true,
       text: result.text,
-      confidence: result.confidence || DEFAULT_CONFIDENCE,
+      confidence,
       language: result.language || 'unknown',
-      processingTime: formatProcessingTime(startTime),
-      engine: 'paddleocr'
+      processingTime,
+      engine: 'paddleocr',
+      warning
     };
-
-    if (response.confidence < LOW_CONFIDENCE_THRESHOLD) {
-      response.warning = 'Low confidence score, image quality may be poor';
-    }
 
     return JSON.stringify(response, null, 2);
   } catch (error) {

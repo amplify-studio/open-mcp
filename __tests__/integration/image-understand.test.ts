@@ -56,7 +56,7 @@ describe('image-understand tool', () => {
     fetchMocker.mock(mockFetch as any);
 
     const result = await understandImage({
-      files: [testFiles[0]],
+      file: testFiles[0],
       prompt: 'What is in this image?',
       thinking: false
     });
@@ -79,32 +79,10 @@ describe('image-understand tool', () => {
     fetchMocker.mock(mockFetch as any);
 
     const result = await understandImage({
-      files: ['https://example.com/image.png'],
+      file: 'https://example.com/image.png',
       prompt: 'Describe this image'
     });
 
     assert.equal(result, 'URL response');
-  });
-
-  it('should handle multiple files', async () => {
-    const mockFetch = async (url: string | Request, options?: RequestInit): Promise<Response> => {
-      return {
-        ok: true,
-        json: async () => ({
-          choices: [{
-            message: { content: 'Multi-file response' }
-          }]
-        })
-      } as Response;
-    };
-
-    fetchMocker.mock(mockFetch as any);
-
-    const result = await understandImage({
-      files: testFiles,
-      prompt: 'Compare these images'
-    });
-
-    assert.equal(result, 'Multi-file response');
   });
 });

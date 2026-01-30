@@ -13,15 +13,16 @@ function getZhipuApiKey(): string {
   return apiKey;
 }
 
+export interface VisionContentItem {
+  type: 'image_url' | 'video_url' | 'file_url';
+  image_url?: { url: string };
+  video_url?: { url: string };
+  file_url?: { url: string };
+}
+
 interface VisionMessage {
   role: 'user' | 'assistant' | 'system';
-  content: Array<{
-    type: 'text' | 'image_url' | 'video_url' | 'file_url';
-    text?: string;
-    image_url?: { url: string };
-    video_url?: { url: string };
-    file_url?: { url: string };
-  }>;
+  content: Array<VisionContentItem | { type: 'text'; text: string }>;
 }
 
 interface VisionAPIResponse {
@@ -45,16 +46,15 @@ interface ZhipuError {
   };
 }
 
-async function handleAPIError(response: Response, context: string): Promise<never> {
+async function handleAPIError(response: Response): Promise<never> {
   const errorData: ZhipuError = await response.json().catch(() => ({}));
   const errorMessage = errorData.error?.message || `HTTP ${response.status}`;
 
-  let errorPrefix = 'API error';
-  if (response.status === 401) {
-    errorPrefix = 'Authentication failed';
-  } else if (response.status >= 500) {
-    errorPrefix = 'Server error';
-  }
+  const errorPrefix = response.status === 401
+    ? 'Authentication failed'
+    : response.status >= 500
+    ? 'Server error'
+    : 'API error';
 
   throw new Error(`${errorPrefix}: ${errorMessage}`);
 }
@@ -63,16 +63,20 @@ async function fetchZhipuAPI(
   endpoint: string,
   body: Record<string, unknown>
 ): Promise<Response> {
-  const ZHIPU_API_KEY = getZhipuApiKey();
-
-  return fetch(`${ZHIPU_API_BASE}${endpoint}`, {
+  const response = await fetch(`${ZHIPU_API_BASE}${endpoint}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${ZHIPU_API_KEY}`
+      'Authorization': `Bearer ${getZhipuApiKey()}`
     },
     body: JSON.stringify(body)
   });
+
+  if (!response.ok) {
+    await handleAPIError(response);
+  }
+
+  return response;
 }
 
 /**
@@ -89,10 +93,6 @@ export async function callVisionAPI(
       type: thinking ? 'enabled' : 'disabled'
     }
   });
-
-  if (!response.ok) {
-    await handleAPIError(response, 'Vision API');
-  }
 
   const data: VisionAPIResponse = await response.json();
 
@@ -115,12 +115,6 @@ export async function callImageGenAPI(
     prompt,
     size
   });
-
-  if (!response.ok) {
-    const errorData: ZhipuError = await response.json().catch(() => ({}));
-    const errorMessage = errorData.error?.message || `HTTP ${response.status}`;
-    throw new Error(`Image generation API error (${response.status}): ${errorMessage}`);
-  }
 
   const data: ImageGenAPIResponse = await response.json();
 

@@ -113,10 +113,9 @@ export const IMAGE_UNDERSTAND_TOOL: Tool = {
   inputSchema: {
     type: "object",
     properties: {
-      files: {
-        type: "array",
-        items: { type: "string" },
-        description: "Array of file paths, URLs, or base64 data (images, videos, PDFs, etc.)",
+      file: {
+        type: "string",
+        description: "File path, URL, or base64 data (image, video, or PDF)",
       },
       prompt: {
         type: "string",
@@ -124,11 +123,11 @@ export const IMAGE_UNDERSTAND_TOOL: Tool = {
       },
       thinking: {
         type: "boolean",
-        description: "Enable deep thinking mode for complex reasoning (default: false)",
-        default: false,
+        description: "Enable deep thinking mode for complex reasoning (default: true)",
+        default: true,
       },
     },
-    required: ["files", "prompt"],
+    required: ["file", "prompt"],
   },
 };
 
@@ -161,7 +160,7 @@ export interface ImageOCRArgs {
 }
 
 export interface ImageUnderstandArgs {
-  files: string[];
+  file: string;
   prompt: string;
   thinking?: boolean;
 }
@@ -171,11 +170,14 @@ export interface ImageGenerateArgs {
   size?: string;
 }
 
+/**
+ * Generic type guard for checking if an object has a property of a specific type
+ */
 function hasProperty<T extends string>(
   args: unknown,
   prop: T,
   type: 'string' | 'number' | 'boolean' | 'object'
-): boolean {
+): args is Record<T, unknown> {
   return (
     typeof args === "object" &&
     args !== null &&
@@ -189,15 +191,10 @@ export function isImageOCRArgs(args: unknown): args is ImageOCRArgs {
 }
 
 export function isImageUnderstandArgs(args: unknown): args is ImageUnderstandArgs {
-  if (
-    !hasProperty(args, 'prompt', 'string') ||
-    !hasProperty(args, 'files', 'object')
-  ) {
-    return false;
-  }
-
-  const files = (args as { files: unknown }).files;
-  return Array.isArray(files);
+  return (
+    hasProperty(args, 'prompt', 'string') &&
+    hasProperty(args, 'file', 'string')
+  );
 }
 
 export function isImageGenerateArgs(args: unknown): args is ImageGenerateArgs {

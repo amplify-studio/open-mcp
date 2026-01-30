@@ -4,21 +4,14 @@ import {
   normalizeInput,
   readAsBase64,
 } from '../utils/file-helper.js';
-import { callVisionAPI } from '../api/zhipu.js';
+import { callVisionAPI, type VisionContentItem } from '../api/zhipu.js';
 import type { ImageUnderstandArgs } from '../types.js';
 
-interface ContentItem {
-  type: 'text' | 'image_url' | 'video_url' | 'file_url';
-  text?: string;
-  image_url?: { url: string };
-  video_url?: { url: string };
-  file_url?: { url: string };
-}
+type ContentItem = VisionContentItem | { type: 'text'; text: string };
 
 const DEFAULT_MIME_TYPES = {
   image: 'image/png',
   video: 'video/mp4',
-  file: 'application/octet-stream'
 } as const;
 
 /**
@@ -33,12 +26,9 @@ async function fileToDataUrl(file: string): Promise<string> {
     return `data:${mimeType};base64,${base64}`;
   }
 
-  if (normalized.type === 'base64') {
-    if (normalized.value.startsWith('data:')) {
-      return normalized.value;
-    }
-    const fileType = detectFileType(normalized.value);
-    const mimeType = DEFAULT_MIME_TYPES[fileType || 'file'];
+  if (normalized.type === 'base64' && !normalized.value.startsWith('data:')) {
+    const fileType = detectFileType(normalized.value) as keyof typeof DEFAULT_MIME_TYPES;
+    const mimeType = DEFAULT_MIME_TYPES[fileType] ?? 'application/octet-stream';
     return `data:${mimeType};base64,${normalized.value}`;
   }
 
@@ -49,7 +39,7 @@ async function fileToDataUrl(file: string): Promise<string> {
  * Create content item based on file type
  */
 function createContentItem(dataUrl: string, file: string): ContentItem {
-  const fileType = detectFileType(file);
+  const fileType = detectFileType(file.split('?')[0]);
 
   if (fileType === 'image') {
     return { type: 'image_url', image_url: { url: dataUrl } };
@@ -63,47 +53,26 @@ function createContentItem(dataUrl: string, file: string): ContentItem {
 }
 
 /**
- * Build Zhipu API message format from user input
- */
-async function buildVisionContent(
-  files: string[],
-  prompt: string
-): Promise<ContentItem[]> {
-  const content: ContentItem[] = [];
-
-  for (const file of files) {
-    const dataUrl = await fileToDataUrl(file);
-    content.push(createContentItem(dataUrl, file));
-  }
-
-  content.push({
-    type: 'text',
-    text: prompt
-  });
-
-  return content;
-}
-
-/**
  * Main function: Process image understanding request
  */
 export async function understandImage(
   args: ImageUnderstandArgs
 ): Promise<string> {
-  const { files, prompt, thinking = false } = args;
+  const { file, prompt, thinking = true } = args;
 
-  if (!files?.length) {
-    throw new Error('At least one file is required');
+  if (!file?.trim()) {
+    throw new Error('File is required');
   }
 
   if (!prompt?.trim()) {
     throw new Error('Prompt is required');
   }
 
-  const content = await buildVisionContent(files, prompt);
+  const dataUrl = await fileToDataUrl(file);
+  const contentItem = createContentItem(dataUrl, file);
 
   return callVisionAPI([{
     role: 'user',
-    content
+    content: [contentItem, { type: 'text', text: prompt }]
   }], thinking);
 }

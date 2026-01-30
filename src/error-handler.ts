@@ -153,7 +153,7 @@ export function validateEnvironment(): string | null {
 
 export function validateZhipuAI(): string | null {
   if (!process.env.ZHIPUAI_API_KEY) {
-    console.warn('WARNING: ZHIPUAI_API_KEY not set. Image understanding and generation tools will not work.');
+    console.warn('WARNING: ZHIPUAI_API_KEY not set. Image tools will not work.');
   }
   return null;
 }
