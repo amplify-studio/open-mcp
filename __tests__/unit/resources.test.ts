@@ -29,10 +29,10 @@ async function runTests() {
   await testFunction('createConfigResource includes environment variables', () => {
     const config = createConfigResource();
     const parsed = JSON.parse(config);
-    
+
     // Check that config includes environment information
     assert.ok(parsed.environment);
-    assert.ok(parsed.environment.searxngUrl || parsed.environment.hasOwnProperty('searxngUrl'));
+    assert.ok(parsed.environment.gatewayUrl || parsed.environment.hasOwnProperty('gatewayUrl'));
     assert.ok(parsed.environment.currentLogLevel || parsed.environment.hasOwnProperty('currentLogLevel'));
   }, results);
 

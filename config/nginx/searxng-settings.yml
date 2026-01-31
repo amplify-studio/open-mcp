@@ -27,6 +27,15 @@ server:
   # by ${SEARXNG_BASE_URL}.
   # base_url: http://example.com/location
 
+# Outgoing proxy configuration (for external search engines)
+# Environment variables: HTTP_PROXY, HTTPS_PROXY, NO_PROXY
+outgoing:
+  proxies:
+    http: ${HTTP_PROXY}
+    https: ${HTTPS_PROXY}
+    # Optional: bypass proxy for these hosts
+    # no_proxy: ${NO_PROXY}
+
 valkey:
   # URL to connect valkey database. Is overwritten by ${SEARXNG_VALKEY_URL}.
   url: valkey://localhost:6379/0

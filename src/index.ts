@@ -13,78 +13,29 @@ import {
 
 // Import modularized functionality
 import {
-  WEB_SEARCH_TOOL,
-  READ_URL_TOOL,
-  IMAGE_OCR_TOOL,
-  IMAGE_UNDERSTAND_TOOL,
   IMAGE_GENERATE_TOOL,
-  isSearXNGWebSearchArgs,
-  isImageOCRArgs,
+  IMAGE_UNDERSTAND_TOOL,
+  READ_URL_TOOL,
+  WEB_SEARCH_TOOL,
+  isImageGenerateArgs,
   isImageUnderstandArgs,
-  isImageGenerateArgs
+  isSearXNGWebSearchArgs,
+  isWebUrlReadArgs,
 } from "./types.js";
 import { logMessage, setLogLevel } from "./logging.js";
 import { performWebSearch } from "./search.js";
 import { fetchAndConvertToMarkdown } from "./url-reader.js";
-import { extractTextFromImage } from "./tools/image-ocr.js";
 import { understandImage } from "./tools/image-understand.js";
 import { generateImage } from "./tools/image-generate.js";
 import { createConfigResource, createHelpResource } from "./resources.js";
 import { createHttpServer } from "./http-server.js";
-import { validateEnvironment as validateEnv, validateZhipuAI } from "./error-handler.js";
+import { validateEnvironment as validateEnv } from "./error-handler.js";
 
 // Use a static version string that will be updated by the version script
 const packageVersion = "0.9.0";
 
 // Export the version for use in other modules
 export { packageVersion };
-
-// Global state for logging level
-let currentLogLevel: LoggingLevel = "info";
-
-// Type guard for URL reading args
-export function isWebUrlReadArgs(args: unknown): args is {
-  url: string;
-  startChar?: number;
-  maxLength?: number;
-  section?: string;
-  paragraphRange?: string;
-  readHeadings?: boolean;
-} {
-  if (
-    typeof args !== "object" ||
-    args === null ||
-    !("url" in args) ||
-    typeof (args as { url: string }).url !== "string"
-  ) {
-    return false;
-  }
-
-  const urlArgs = args as any;
-
-  // Convert empty strings to undefined for optional string parameters
-  if (urlArgs.section === "") urlArgs.section = undefined;
-  if (urlArgs.paragraphRange === "") urlArgs.paragraphRange = undefined;
-
-  // Validate optional parameters
-  if (urlArgs.startChar !== undefined && (typeof urlArgs.startChar !== "number" || urlArgs.startChar < 0)) {
-    return false;
-  }
-  if (urlArgs.maxLength !== undefined && (typeof urlArgs.maxLength !== "number" || urlArgs.maxLength < 1)) {
-    return false;
-  }
-  if (urlArgs.section !== undefined && typeof urlArgs.section !== "string") {
-    return false;
-  }
-  if (urlArgs.paragraphRange !== undefined && typeof urlArgs.paragraphRange !== "string") {
-    return false;
-  }
-  if (urlArgs.readHeadings !== undefined && typeof urlArgs.readHeadings !== "boolean") {
-    return false;
-  }
-
-  return true;
-}
 
 // Server implementation
 const server = new Server(
@@ -104,10 +55,6 @@ const server = new Server(
         web_url_read: {
           description: READ_URL_TOOL.description,
           schema: READ_URL_TOOL.inputSchema,
-        },
-        image_ocr: {
-          description: IMAGE_OCR_TOOL.description,
-          schema: IMAGE_OCR_TOOL.inputSchema,
         },
         image_understand: {
           description: IMAGE_UNDERSTAND_TOOL.description,
@@ -129,7 +76,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       WEB_SEARCH_TOOL,
       READ_URL_TOOL,
-      IMAGE_OCR_TOOL,
       IMAGE_UNDERSTAND_TOOL,
       IMAGE_GENERATE_TOOL
     ],
@@ -157,22 +103,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!isWebUrlReadArgs(args)) {
           throw new Error("Invalid arguments for URL reading");
         }
-        const paginationOptions = {
+        result = await fetchAndConvertToMarkdown(server, args.url, 10000, {
           startChar: args.startChar,
           maxLength: args.maxLength,
           section: args.section,
           paragraphRange: args.paragraphRange,
           readHeadings: args.readHeadings,
-        };
-        result = await fetchAndConvertToMarkdown(server, args.url, 10000, paginationOptions);
-        break;
-      }
-
-      case "image_ocr": {
-        if (!isImageOCRArgs(args)) {
-          throw new Error("Invalid arguments for image OCR");
-        }
-        result = await extractTextFromImage(args);
+        });
         break;
       }
 
@@ -213,7 +150,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 server.setRequestHandler(SetLevelRequestSchema, async (request) => {
   const { level } = request.params;
   logMessage(server, "info", `Setting log level to: ${level}`);
-  currentLogLevel = level;
   setLogLevel(level);
   return {};
 });
@@ -282,10 +218,14 @@ async function main() {
   }
 
   // Validate Zhipu AI (warning only, don't block startup)
-  validateZhipuAI();
+  if (!process.env.ZHIPUAI_API_KEY) {
+    console.warn('WARNING: ZHIPUAI_API_KEY not set. Image tools will not work.');
+  }
 
   // Check for HTTP transport mode
   const httpPort = process.env.MCP_HTTP_PORT;
+  const gatewayUrlDisplay = process.env.GATEWAY_URL || "Not configured (required)";
+
   if (httpPort) {
     const port = parseInt(httpPort, 10);
     if (isNaN(port) || port < 1 || port > 65535) {
@@ -295,7 +235,7 @@ async function main() {
 
     console.log(`Starting HTTP transport on port ${port}`);
     const app = await createHttpServer(server);
-    
+
     const httpServer = app.listen(port, () => {
       console.log(`HTTP server listening on port ${port}`);
       console.log(`Health check: http://localhost:${port}/health`);
@@ -319,18 +259,17 @@ async function main() {
     if (process.stdin.isTTY) {
       console.log(`🔍 MCP SearXNG Server v${packageVersion} - Ready`);
       console.log("✅ Configuration valid");
-      console.log(`🌐 Gateway URL: ${process.env.GATEWAY_URL || "http://115.190.91.253:80 (default)"}`);
+      console.log(`🌐 Gateway URL: ${gatewayUrlDisplay}`);
       console.log("📡 Waiting for MCP client connection via STDIO...\n");
     }
-    
+
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    
+
     // Log after connection is established
     logMessage(server, "info", `MCP SearXNG Server v${packageVersion} connected via STDIO`);
-    logMessage(server, "info", `Log level: ${currentLogLevel}`);
     logMessage(server, "info", `Environment: ${process.env.NODE_ENV || 'development'}`);
-    logMessage(server, "info", `Gateway URL: ${process.env.GATEWAY_URL || 'http://115.190.91.253:80 (default)'}`);
+    logMessage(server, "info", `Gateway URL: ${gatewayUrlDisplay}`);
   }
 }
 

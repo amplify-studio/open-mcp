@@ -1,17 +1,17 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { NodeHtmlMarkdown } from "node-html-markdown";
 import { createProxyAgent } from "./proxy.js";
 import { logMessage } from "./logging.js";
 import { urlCache } from "./cache.js";
 import {
   createURLFormatError,
+  createConfigurationError,
   createNetworkError,
   createServerError,
   createContentError,
-  createConversionError,
   createTimeoutError,
   createEmptyContentWarning,
   createUnexpectedError,
+  GATEWAY_URL_REQUIRED_MESSAGE,
   type ErrorContext
 } from "./error-handler.js";
 
@@ -159,18 +159,21 @@ export async function fetchAndConvertToMarkdown(
     logMessage(server, "info", `Processed cached URL: ${url} (${result.length} chars in ${duration}ms)`);
     return result;
   }
-  
+
   // Validate URL format
-  let parsedUrl: URL;
   try {
-    parsedUrl = new URL(url);
-  } catch (error) {
+    new URL(url);
+  } catch {
     logMessage(server, "error", `Invalid URL format: ${url}`);
     throw createURLFormatError(url);
   }
 
   // Build gateway API URL
-  const gatewayUrl = process.env.GATEWAY_URL || "http://115.190.91.253:80";
+  const gatewayUrl = process.env.GATEWAY_URL;
+
+  if (!gatewayUrl) {
+    throw createConfigurationError(GATEWAY_URL_REQUIRED_MESSAGE);
+  }
   const gatewayApiUrl = `${gatewayUrl}/api/read/${encodeURIComponent(url)}`;
 
   // Create an AbortController instance
@@ -184,7 +187,6 @@ export async function fetchAndConvertToMarkdown(
     };
 
     // Add proxy dispatcher if proxy is configured
-    // Node.js fetch uses 'dispatcher' option for proxy, not 'agent'
     const proxyAgent = createProxyAgent(gatewayApiUrl);
     if (proxyAgent) {
       (requestOptions as any).dispatcher = proxyAgent;
@@ -192,16 +194,9 @@ export async function fetchAndConvertToMarkdown(
 
     let response: Response;
     try {
-      // Fetch the URL via gateway API with the abort signal
       response = await fetch(gatewayApiUrl, requestOptions);
     } catch (error: any) {
-      const context: ErrorContext = {
-        url,
-        gatewayUrl,
-        proxyAgent: !!proxyAgent,
-        timeout: timeoutMs
-      };
-      throw createNetworkError(error, context);
+      throw createNetworkError(error, { url, gatewayUrl, timeout: timeoutMs });
     }
 
     if (!response.ok) {
@@ -211,9 +206,7 @@ export async function fetchAndConvertToMarkdown(
       } catch {
         responseBody = '[Could not read response body]';
       }
-
-      const context: ErrorContext = { url, gatewayUrl };
-      throw createServerError(response.status, response.statusText, responseBody, context);
+      throw createServerError(response.status, response.statusText, responseBody, { url, gatewayUrl });
     }
 
     // Retrieve content from gateway API (JSON response)
@@ -239,7 +232,7 @@ export async function fetchAndConvertToMarkdown(
 
     if (!markdownContent || markdownContent.trim().length === 0) {
       logMessage(server, "warning", `Empty content from gateway: ${url}`);
-      return createEmptyContentWarning(url, 0, "");
+      return createEmptyContentWarning(url);
     }
 
     // Cache the markdown content from gateway
@@ -272,8 +265,7 @@ export async function fetchAndConvertToMarkdown(
     
     // Catch any unexpected errors
     logMessage(server, "error", `Unexpected error fetching URL: ${url}`, error);
-    const context: ErrorContext = { url };
-    throw createUnexpectedError(error, context);
+    throw createUnexpectedError(error, { url });
   } finally {
     // Clean up the timeout to prevent memory leaks
     clearTimeout(timeoutId);

@@ -119,8 +119,8 @@ services:
         condition: service_started
       nuq-postgres:
         condition: service_started
-    ports:
-      - "${PORT:-3002}:${INTERNAL_PORT:-3002}"
+    expose:
+      - "3002"
     command: ["node", "dist/src/index.js"]
     cpus: 1.0
     mem_limit: 3G
@@ -179,8 +179,13 @@ services:
       context: ./docker/searxng
       dockerfile: Dockerfile
     restart: unless-stopped
-    ports:
-      - "8888:8888"
+    environment:
+      # Outgoing proxy for SearXNG to access external search engines
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1}
+    expose:
+      - "8888"
     volumes:
       - ./config/nginx/searxng-settings.yml:/etc/searxng/settings.yml:ro
       - searxng-cache:/var/cache/searxng
@@ -202,7 +207,6 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
-      - "3333:3333"
     depends_on:
       mcp-searxng:
         condition: service_healthy
@@ -243,23 +247,23 @@ volumes:
 #
 # 本配置包含 7 个服务：
 # 1. playwright-service - 浏览器自动化 (支持动态内容)
-# 2. firecrawl-api - Firecrawl API 服务器 (3002)
+# 2. firecrawl-api - Firecrawl API 服务器 (内部端口 3002)
 # 3. redis - Rate Limiting 和缓存
 # 4. nuq-postgres - 数据库
-# 5. firecrawl-reader-adapter - Jina Reader 兼容接口 (8082)
-# 6. mcp-searxng - 搜索引擎服务 (8888)
-# 7. nginx - API 网关 (80, 3333)
+# 5. firecrawl-reader-adapter - Jina Reader 兼容接口 (内部端口 8082)
+# 6. mcp-searxng - 搜索引擎服务 (内部端口 8888)
+# 7. nginx - API 网关 (对外端口 80)
 #
-# API 端点（通过 nginx 访问）：
+# API 端点（通过 nginx 在端口 80 访问）：
 # - 搜索: http://localhost:80/api/search/
 # - 抓取: http://localhost:80/api/read/<url>
 # - Firecrawl Search: http://localhost:80/api/firecrawl-search
 # - 状态: http://localhost:80/api/status
 #
-# 直接访问：
-# - Firecrawl API: http://localhost:3002 (v1/scrape, v1/search)
-# - SearXNG: http://localhost:8888
-# - Reader Adapter: http://localhost:8082 (仅内部)
+# 内部服务（仅通过 nginx 访问，不对外暴露）：
+# - Firecrawl API: firecrawl-api:3002
+# - SearXNG: mcp-searxng:8888
+# - Reader Adapter: firecrawl-reader-adapter:8082
 #
 # 使用方法：
 # docker compose --env-file .env up -d

@@ -1,30 +1,31 @@
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
 
-export interface SearXNGWeb {
-  results: Array<{
-    title: string;
-    content: string;
-    url: string;
-  }>;
-}
-
 export function isSearXNGWebSearchArgs(args: unknown): args is {
   query: string;
   limit?: number;
 } {
-  return (
-    typeof args === "object" &&
-    args !== null &&
-    "query" in args &&
-    typeof (args as { query: string }).query === "string"
-  );
+  if (
+    typeof args !== "object" ||
+    args === null ||
+    !("query" in args) ||
+    typeof (args as { query: string }).query !== "string"
+  ) {
+    return false;
+  }
+
+  const searchArgs = args as Partial<{ limit: number }>;
+  if (searchArgs.limit !== undefined && (typeof searchArgs.limit !== "number" || searchArgs.limit < 1 || searchArgs.limit > 100)) {
+    return false;
+  }
+
+  return true;
 }
 
 export const WEB_SEARCH_TOOL: Tool = {
   name: "searxng_web_search",
   description:
     "Performs web search using the Gateway API Firecrawl search. " +
-    "Returns search results with title, content, URL, and relevance score. " +
+    "Returns search results with title, content, and URL. " +
     "Use this for general queries, news, articles, and online content.",
   inputSchema: {
     type: "object",
@@ -84,24 +85,6 @@ export const READ_URL_TOOL: Tool = {
   },
 };
 
-export const IMAGE_OCR_TOOL: Tool = {
-  name: "image_ocr",
-  description:
-    "Perform OCR (Optical Character Recognition) on images using PaddleOCR. " +
-    "Extracts text from image files (supports PNG, JPG, JPEG, BMP, GIF formats). " +
-    "Use this when you need to extract text from screenshots, scanned documents, or other images containing text.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      imageFile: {
-        type: "string",
-        description: "Path to the image file to perform OCR on",
-      },
-    },
-    required: ["imageFile"],
-  },
-};
-
 export const IMAGE_UNDERSTAND_TOOL: Tool = {
   name: "image_understand",
   description:
@@ -155,10 +138,6 @@ export const IMAGE_GENERATE_TOOL: Tool = {
   },
 };
 
-export interface ImageOCRArgs {
-  imageFile: string;
-}
-
 export interface ImageUnderstandArgs {
   file: string;
   prompt: string;
@@ -186,28 +165,65 @@ function hasProperty<T extends string>(
   );
 }
 
-export function isImageOCRArgs(args: unknown): args is ImageOCRArgs {
-  return hasProperty(args, 'imageFile', 'string');
-}
-
 export function isImageUnderstandArgs(args: unknown): args is ImageUnderstandArgs {
-  return (
-    hasProperty(args, 'prompt', 'string') &&
-    hasProperty(args, 'file', 'string')
-  );
+  if (!hasProperty(args, 'prompt', 'string') || !hasProperty(args, 'file', 'string')) {
+    return false;
+  }
+
+  const typedArgs = args as Partial<ImageUnderstandArgs>;
+
+  if (typedArgs.thinking !== undefined && typeof typedArgs.thinking !== 'boolean') {
+    return false;
+  }
+
+  return true;
 }
 
 export function isImageGenerateArgs(args: unknown): args is ImageGenerateArgs {
-  return hasProperty(args, 'prompt', 'string');
+  if (!hasProperty(args, 'prompt', 'string')) {
+    return false;
+  }
+
+  const typedArgs = args as Partial<ImageGenerateArgs>;
+
+  if (typedArgs.size !== undefined && typeof typedArgs.size !== 'string') {
+    return false;
+  }
+
+  return true;
 }
 
-export function isWebUrlReadArgs(args: unknown): args is {
+export function isWebUrlReadArgs(args: unknown): args is WebUrlReadArgs {
+  if (!hasProperty(args, 'url', 'string')) {
+    return false;
+  }
+
+  const urlArgs = args as Partial<WebUrlReadArgs>;
+
+  if (urlArgs.startChar !== undefined && (typeof urlArgs.startChar !== 'number' || urlArgs.startChar < 0)) {
+    return false;
+  }
+  if (urlArgs.maxLength !== undefined && (typeof urlArgs.maxLength !== 'number' || urlArgs.maxLength < 1)) {
+    return false;
+  }
+  if (urlArgs.section !== undefined && typeof urlArgs.section !== 'string') {
+    return false;
+  }
+  if (urlArgs.paragraphRange !== undefined && typeof urlArgs.paragraphRange !== 'string') {
+    return false;
+  }
+  if (urlArgs.readHeadings !== undefined && typeof urlArgs.readHeadings !== 'boolean') {
+    return false;
+  }
+
+  return true;
+}
+
+export interface WebUrlReadArgs {
   url: string;
   startChar?: number;
   maxLength?: number;
   section?: string;
   paragraphRange?: string;
   readHeadings?: boolean;
-} {
-  return hasProperty(args, 'url', 'string');
 }

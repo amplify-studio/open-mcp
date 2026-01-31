@@ -2,20 +2,11 @@
 
 ## Overview
 
-This feature adds three new MCP tools for working with images using Zhipu AI's free models:
-- **Image OCR** (`image_ocr`): Extract text from images using PaddleOCR
+This feature adds two new MCP tools for working with images using Zhipu AI's free models:
 - **Image Understanding** (`image_understand`): Powered by GLM-4.6V-Flash
 - **Image Generation** (`image_generate`): Powered by Cogview-3-Flash
 
 ## Capabilities
-
-### Image OCR
-
-The `image_ocr` tool supports:
-- Text extraction from images using PaddleOCR
-- Multiple image formats (PNG, JPG, JPEG)
-- Local file paths, URLs, or base64 data
-- Multilingual text recognition
 
 ### Image Understanding
 
@@ -32,14 +23,6 @@ The `image_understand` tool supports:
 The `image_generate` tool creates images from text descriptions with multiple resolution options.
 
 ## Usage Examples
-
-### Image OCR
-
-```json
-{
-  "image": "/path/to/image.png"
-}
-```
 
 ### Image Understanding
 
@@ -80,14 +63,13 @@ export ZHIPUAI_API_KEY="your-api-key-here"
 
 ### Tool Locations
 
-- `src/tools/image-ocr.ts` - PaddleOCR-based text extraction
 - `src/tools/image-understand.ts` - GLM-4.6V-Flash visual understanding
 - `src/tools/image-generate.ts` - Cogview-3-Flash image generation
+- `src/api/zhipu.ts` - Zhipu AI API client
 
 ### Type Definitions
 
 Tool schemas are defined in `src/types.ts`:
-- `IMAGE_OCR_TOOL` - OCR tool schema
 - `IMAGE_UNDERSTAND_TOOL` - Image understanding schema
 - `IMAGE_GENERATE_TOOL` - Image generation schema
 

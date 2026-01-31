@@ -108,6 +108,7 @@ async function runTests() {
     }
 
     fetchMocker.restore();
+    envManager.restore();
   }, results);
 
   await testFunction('Empty content handling', async () => {
@@ -124,6 +125,7 @@ async function runTests() {
     }
 
     fetchMocker.restore();
+    envManager.restore();
   }, results);
 
   await testFunction('Whitespace-only content handling', async () => {
@@ -139,89 +141,118 @@ async function runTests() {
     }
 
     fetchMocker.restore();
+    envManager.restore();
   }, results);
 
   await testFunction('Successful HTML to Markdown conversion', async () => {
     const mockServer = createMockServer();
     urlCache.clear();
-    
-    const testHtml = `
-      <html>
-        <head><title>Test Page</title></head>
-        <body>
-          <h1>Main Title</h1>
-          <p>This is a test paragraph with <strong>bold text</strong>.</p>
-          <ul>
-            <li>First item</li>
-            <li>Second item</li>
-          </ul>
-          <a href="https://example.com">Test Link</a>
-        </body>
-      </html>
-    `;
+    envManager.set('GATEWAY_URL', 'https://test-gateway.com');
 
-    fetchMocker.mock(createMockFetch({ body: testHtml }));
+    const testMarkdown = `# Main Title
+
+This is a test paragraph with **bold text**.
+
+- First item
+- Second item
+
+[Test Link](https://example.com)`;
+
+    const mockResponse = {
+      ok: true,
+      json: async () => ({ content: testMarkdown, title: 'Test Page', url: 'https://example.com' })
+    };
+    fetchMocker.mock(async () => mockResponse as any);
 
     const result = await fetchAndConvertToMarkdown(mockServer as any, 'https://example.com');
     assert.ok(typeof result === 'string');
     assert.ok(result.length > 0);
-    // Check for markdown conversion
-    assert.ok(result.includes('Main Title') || result.includes('#'));
+    // Check for JSON response format
+    const parsed = JSON.parse(result);
+    assert.ok(parsed.content);
+    assert.ok(parsed.content.includes('Main Title'));
 
     fetchMocker.restore();
+    envManager.restore();
   }, results);
 
   await testFunction('Character pagination - maxLength', async () => {
     const mockServer = createMockServer();
     urlCache.clear();
+    envManager.set('GATEWAY_URL', 'https://test-gateway.com');
 
-    const testHtml = '<html><body><h1>Test Title</h1><p>This is a long paragraph with lots of content that we can paginate through.</p></body></html>';
-    fetchMocker.mock(createMockFetch({ body: testHtml }));
+    const testMarkdown = '# Test Title\n\nThis is a long paragraph with lots of content that we can paginate through.';
+    const mockResponse = {
+      ok: true,
+      json: async () => ({ content: testMarkdown })
+    };
+    fetchMocker.mock(async () => mockResponse as any);
 
     const result = await fetchAndConvertToMarkdown(mockServer as any, 'https://test-char-pagination.com', 10000, { maxLength: 20 });
     assert.ok(typeof result === 'string');
-    assert.ok(result.length <= 20, `Expected length <= 20, got ${result.length}`);
+    const parsed = JSON.parse(result);
+    assert.ok(parsed.content.length <= 20, `Expected length <= 20, got ${parsed.content.length}`);
 
     fetchMocker.restore();
+    envManager.restore();
   }, results);
 
   await testFunction('Character pagination - startChar', async () => {
     const mockServer = createMockServer();
     urlCache.clear();
+    envManager.set('GATEWAY_URL', 'https://test-gateway.com');
 
-    const testHtml = '<html><body><h1>Test Title</h1><p>Content here.</p></body></html>';
-    fetchMocker.mock(createMockFetch({ body: testHtml }));
+    const testMarkdown = '# Test Title\n\nContent here.';
+    const mockResponse = {
+      ok: true,
+      json: async () => ({ content: testMarkdown })
+    };
+    fetchMocker.mock(async () => mockResponse as any);
 
     const result = await fetchAndConvertToMarkdown(mockServer as any, 'https://test-start.com', 10000, { startChar: 10 });
     assert.ok(typeof result === 'string');
+    const parsed = JSON.parse(result);
+    assert.ok(parsed.content);
 
     fetchMocker.restore();
+    envManager.restore();
   }, results);
 
   await testFunction('Character pagination - both startChar and maxLength', async () => {
     const mockServer = createMockServer();
     urlCache.clear();
+    envManager.set('GATEWAY_URL', 'https://test-gateway.com');
 
-    const testHtml = '<html><body><p>Content for pagination test.</p></body></html>';
-    fetchMocker.mock(createMockFetch({ body: testHtml }));
+    const testMarkdown = '# Test\n\nContent for pagination test.';
+    const mockResponse = {
+      ok: true,
+      json: async () => ({ content: testMarkdown })
+    };
+    fetchMocker.mock(async () => mockResponse as any);
 
     const result = await fetchAndConvertToMarkdown(mockServer as any, 'https://test-both.com', 10000, { startChar: 5, maxLength: 15 });
     assert.ok(typeof result === 'string');
-    assert.ok(result.length <= 15, `Expected length <= 15, got ${result.length}`);
+    const parsed = JSON.parse(result);
+    assert.ok(parsed.content.length <= 15, `Expected length <= 15, got ${parsed.content.length}`);
 
     fetchMocker.restore();
+    envManager.restore();
   }, results);
 
   await testFunction('Cache integration with pagination', async () => {
     const mockServer = createMockServer();
     urlCache.clear();
+    envManager.set('GATEWAY_URL', 'https://test-gateway.com');
 
     let fetchCount = 0;
-    const testHtml = '<html><body><h1>Cached Content</h1><p>This content should be cached.</p></body></html>';
+    const testMarkdown = '# Cached Content\n\nThis content should be cached.';
 
     fetchMocker.mock(async () => {
       fetchCount++;
-      return createMockFetch({ body: testHtml })('', undefined);
+      return {
+        ok: true,
+        json: async () => ({ content: testMarkdown })
+      } as any;
     });
 
     // First request should fetch from network
@@ -242,11 +273,15 @@ async function runTests() {
     urlCache.clear();
 
     envManager.set('HTTPS_PROXY', 'https://proxy.example.com:8080');
-    
+
     let capturedOptions: RequestInit | undefined;
+    const testMarkdown = '# Test with proxy';
     fetchMocker.mock(async (url: string | URL | Request, options?: RequestInit) => {
       capturedOptions = options;
-      return createMockFetch({ body: '<html><body><h1>Test with proxy</h1></body></html>' })('', undefined);
+      return {
+        ok: true,
+        json: async () => ({ content: testMarkdown })
+      } as any;
     });
 
     await fetchAndConvertToMarkdown(mockServer as any, 'https://example.com');

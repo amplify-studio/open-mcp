@@ -20,6 +20,8 @@ Tools provided to AI assistants via MCP protocol:
 
 - 🔍 **Web Search** - Search the web with pagination, time filtering, and language options
 - 📄 **URL Reading** - Extract web page content as markdown with advanced filtering
+- 🎨 **Image Understanding** - Analyze images, videos, and documents using Zhipu AI
+- 🖼️ **Image Generation** - Generate images from text using Zhipu AI
 
 ### Server Features
 
@@ -35,6 +37,7 @@ Infrastructure capabilities for deployment and performance:
 |---------|------------|
 | Search | [SearXNG](https://searxng.org/) - Privacy-respecting metasearch |
 | Scraping | [Firecrawl](https://www.firecrawl.dev/) - Web scraping API |
+| Image AI | [Zhipu AI](https://open.bigmodel.cn/) - Free tier for vision models |
 | Protocol | [MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk) - Official implementation |
 
 ---
@@ -51,85 +54,41 @@ Works with any MCP client:
 
 ## Quick Start
 
-### Want to try it first?
+### Prerequisites
 
-Use our hosted MCP service directly:
+Before using this MCP server, you need:
 
-```bash
-claude mcp add-json -s user mcp-searxng '{
-  "command": "npx",
-  "args": ["-y", "@amplify-studio/open-mcp@latest"],
-  "env": {
-    "GATEWAY_URL": "http://115.190.91.253:80"
+1. **A running Gateway API instance** with SearXNG and Firecrawl
+   - Deploy your own Gateway or use a hosted service
+   - Get your Gateway URL (e.g., `http://your-gateway.com:80`)
+
+2. **(Optional) Zhipu AI API Key** for image features
+   - See [Getting Zhipu AI API Key](#getting-zhipu-ai-api-key) below
+
+### Basic Usage
+
+Add to your Claude Desktop configuration (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "open-mcp": {
+      "command": "npx",
+      "args": ["-y", "@amplify-studio/open-mcp@latest"],
+      "env": {
+        "GATEWAY_URL": "http://your-gateway.com:80",
+        "ZHIPUAI_API_KEY": "your-zhipu-api-key"
+      }
+    }
   }
-}'
+}
 ```
 
-### Like it? Want to deploy yourself?
-
-Continue below for deployment guide
+**Replace:**
+- `http://your-gateway.com:80` with your actual Gateway URL (**required**)
+- `your-zhipu-api-key` with your Zhipu AI API key (**optional** - only needed for image features)
 
 ---
-
-## Installation Methods
-
-#### Using Claude CLI (Recommended)
-
-```bash
-claude mcp add-json -s user mcp-searxng '{
-  "command": "npx",
-  "args": ["-y", "@amplify-studio/open-mcp@latest"],
-  "env": {
-    "GATEWAY_URL": "https://your-gateway-instance.com"
-  }
-}'
-```
-
-#### Using Claude Desktop Config
-
-Edit `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "mcp-searxng": {
-      "command": "npx",
-      "args": ["-y", "@amplify-studio/open-mcp@latest"],
-      "env": {
-        "GATEWAY_URL": "https://your-gateway-instance.com"
-      }
-    }
-  }
-}
-```
-
-#### Using Continue.dev
-
-Add to your `config.json`:
-
-```json
-{
-  "mcpServers": {
-    "mcp-searxng": {
-      "command": "npx",
-      "args": ["-y", "@amplify-studio/open-mcp@latest"],
-      "env": {
-        "GATEWAY_URL": "https://your-gateway-instance.com"
-      }
-    }
-  }
-}
-```
-
-#### HTTP Mode
-
-```bash
-# Start HTTP server
-MCP_HTTP_PORT=3333 GATEWAY_URL=https://your-gateway-instance.com npx @amplify-studio/open-mcp@latest
-
-# Connect from Claude Code
-claude mcp add --transport http mcp-searxng http://localhost:3333/mcp
-```
 
 ## Usage
 
@@ -201,23 +160,6 @@ claude mcp add --transport http mcp-searxng http://localhost:3333/mcp
 }
 ```
 
-### Image OCR Tool
-
-**Tool Name:** `image_ocr`
-
-**Parameters:**
-- `image` (string, required): Image file path, URL, or base64 data
-
-**Example:**
-
-```json
-{
-  "image": "/path/to/image.png"
-}
-```
-
-**Response:** Extracted text from the image
-
 ### Image Understanding Tool
 
 **Tool Name:** `image_understand`
@@ -260,45 +202,45 @@ claude mcp add --transport http mcp-searxng http://localhost:3333/mcp
 
 ## Configuration
 
-### Environment Variables
+### Required Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `GATEWAY_URL` | No | `http://115.190.91.253:80` | Gateway API URL |
-| `AUTH_USERNAME` | No | - | HTTP Basic Auth username |
-| `AUTH_PASSWORD` | No | - | HTTP Basic Auth password |
-| `USER_AGENT` | No | - | Custom User-Agent header |
-| `HTTP_PROXY` | No | - | Proxy URL for HTTP requests |
-| `HTTPS_PROXY` | No | - | Proxy URL for HTTPS requests |
-| `NO_PROXY` | No | - | Comma-separated bypass list |
-| `MCP_HTTP_PORT` | No | - | Enable HTTP transport on specified port |
-| `ZHIPUAI_API_KEY` | No* | - | Zhipu AI API key for image tools |
+| Variable | Description |
+|----------|-------------|
+| `GATEWAY_URL` | **Required.** Your Gateway API URL (e.g., `http://your-gateway.com:80`) |
 
-*Required when using image_ocr, image_understand, or image_generate tools
+### Optional Environment Variables
 
-### Full Configuration Example
+| Variable | Description |
+|----------|-------------|
+| `ZHIPUAI_API_KEY` | Optional. Required only for image understanding/generation features |
 
-```json
-{
-  "mcpServers": {
-    "mcp-searxng": {
-      "command": "npx",
-      "args": ["-y", "@amplify-studio/open-mcp@latest"],
-      "env": {
-        "GATEWAY_URL": "https://search.example.com",
-        "AUTH_USERNAME": "your_username",
-        "AUTH_PASSWORD": "your_password",
-        "USER_AGENT": "MyBot/1.0",
-        "HTTP_PROXY": "http://proxy.company.com:8080",
-        "HTTPS_PROXY": "http://proxy.company.com:8080",
-        "NO_PROXY": "localhost,127.0.0.1,.local,.internal"
-      }
-    }
-  }
-}
-```
+**Need advanced configuration?** See [Advanced Setup Guide](docs/advanced-setup.md) for proxy, authentication, and HTTP transport options.
 
-## Installation Methods
+### Getting Zhipu AI API Key
+
+To use image understanding and generation features, you need a free API key from Zhipu AI:
+
+1. **Register with Invite Link**: [https://www.bigmodel.cn/invite?icode=yn2yXKXS+Ba1UqrD19VwPwZ3c5owLmCCcMQXWcJRS8E=](https://www.bigmodel.cn/invite?icode=yn2yXKXS+Ba1UqrD19VwPwZ3c5owLmCCcMQXWcJRS8E=)
+   - Use the invite link for better benefits
+
+2. **Get API Key**:
+   - After registration, visit [API Keys page](https://www.bigmodel.cn/usercenter/proj-mgmt/apikeys)
+   - Click "生成新的 API Key" (Generate new API key)
+   - Copy the generated key (format: `id.secret`)
+
+3. **Free Tier Benefits**:
+   - GLM-4.6V-Flash: Free for vision understanding
+   - Cogview-3-Flash: Free for image generation
+   - No credit card required for basic usage
+
+4. **Set Environment Variable**:
+   ```bash
+   export ZHIPUAI_API_KEY="your-api-key-here"
+   ```
+
+**Note**: The API key is optional. Only required if you want to use image understanding or generation features.
+
+---
 
 ### Option 1: NPX (Recommended)
 
@@ -310,12 +252,10 @@ npx -y @amplify-studio/open-mcp@latest
 
 ```bash
 npm install -g @amplify-studio/open-mcp
-mcp-searxng
+open-mcp
 ```
 
 ### Option 3: Docker
-
-#### Using Pre-built Image
 
 ```bash
 docker pull amplifystudio/open-mcp:latest
@@ -324,70 +264,24 @@ docker pull amplifystudio/open-mcp:latest
 ```json
 {
   "mcpServers": {
-    "mcp-searxng": {
+    "open-mcp": {
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
         "-e", "GATEWAY_URL",
+        "-e", "ZHIPUAI_API_KEY",
         "amplifystudio/open-mcp:latest"
       ],
       "env": {
-        "GATEWAY_URL": "https://your-gateway-instance.com"
+        "GATEWAY_URL": "http://your-gateway.com:80",
+        "ZHIPUAI_API_KEY": "your-zhipu-api-key"
       }
     }
   }
 }
 ```
 
-#### Docker Compose
-
-**Docker Compose Architecture:**
-
-```mermaid
-graph TB
-    User[User] -->|HTTP| Nginx[nginx:alpine<br/>API Gateway:80,3333]
-    Claude[Claude Desktop/Code] -->|MCP| Nginx
-
-    Nginx -->|/api/search| SearXNG[mcp-searxng:8888<br/>Search Engine]
-    Nginx -->|/api/read| Reader[firecrawl-reader-adapter:8082<br/>Jina Compatible]
-    Nginx -->|/firecrawl| Firecrawl[firecrawl-api:3002<br/>Scraping Service]
-
-    SearXNG --> Web((Internet))
-    Reader --> Firecrawl
-    Firecrawl --> Playwright[playwright-service:3000<br/>Browser]
-    Firecrawl --> Web
-
-    Firecrawl --> Redis[(redis:6379)]
-    Firecrawl --> Postgres[(postgres:5432)]
-```
-
-**Service Overview:**
-
-| Service | Port | Purpose |
-|---------|------|---------|
-| **nginx** | 80, 3333 | API Gateway, routes requests to internal services |
-| **mcp-searxng** | 8888 | Privacy-respecting metasearch engine |
-| **firecrawl-reader-adapter** | 8082 | Jina Reader compatible API for URL reading |
-| **firecrawl-api** | 3002 | Web scraping API with browser automation |
-| **playwright-service** | 3000 | Headless browser for dynamic content |
-| **redis** | 6379 | Rate limiting and caching |
-| **nuq-postgres** | 5432 | Data persistence |
-
-**Quick Start with Docker Compose:**
-
-```yaml
-services:
-  mcp-searxng:
-    image: amplifystudio/open-mcp:latest
-    stdin_open: true
-    environment:
-      - GATEWAY_URL=https://your-gateway-instance.com
-      # Add optional variables as needed
-      # - AUTH_USERNAME=your_username
-      # - AUTH_PASSWORD=your_password
-```
-
-For full Docker Compose deployment with all 7 services, see [docker-compose.yml](https://github.com/amplify-studio/open-mcp/blob/main/docker-compose.yml).
+**Note**: For full Docker Compose deployment with all services, see [docker-compose.yml](https://github.com/amplify-studio/open-mcp/blob/main/docker-compose.yml).
 
 ### Option 4: Local Development
 
@@ -408,77 +302,16 @@ node dist/index.js
 
 ## HTTP Transport Mode
 
-The server supports HTTP transport for remote deployment.
+The server supports HTTP transport for remote deployment. See [Advanced Setup Guide](docs/advanced-setup.md#http-transport-mode) for detailed instructions.
 
-### Starting HTTP Server
-
+**Quick Start**:
 ```bash
-# Basic
-MCP_HTTP_PORT=3333 npx @amplify-studio/open-mcp@latest
-
-# With custom Gateway
-MCP_HTTP_PORT=3333 GATEWAY_URL=https://your-gateway-instance.com npx @amplify-studio/open-mcp@latest
-
-# Background mode
-MCP_HTTP_PORT=3333 npx @amplify-studio/open-mcp@latest &
+MCP_HTTP_PORT=3333 GATEWAY_URL=http://your-gateway.com:80 npx @amplify-studio/open-mcp@latest
 ```
 
-### API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/mcp` | POST | Send JSON-RPC requests |
-| `/mcp` | GET | Receive SSE notifications |
-| `/mcp` | DELETE | Close session |
-
-### Verify Connection
-
+Then connect from Claude Code:
 ```bash
-# Health check
-curl http://localhost:3333/health
-
-# Expected response
-# {"status":"healthy","server":"mcp-searxng","version":"0.9.0","transport":"http"}
-```
-
-### Example curl Commands
-
-```bash
-# 1. Initialize session
-curl -X POST http://localhost:3333/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "initialize",
-    "params": {
-      "protocolVersion": "2025-06-18",
-      "capabilities": {},
-      "clientInfo": {"name": "test-client", "version": "1.0"}
-    }
-  }'
-
-# 2. List tools (use returned session-id)
-curl -X POST http://localhost:3333/mcp \
-  -H "Content-Type: application/json" \
-  -H "mcp-session-id: <session-id>" \
-  -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/list"}'
-
-# 3. Call search tool
-curl -X POST http://localhost:3333/mcp \
-  -H "Content-Type: application/json" \
-  -H "mcp-session-id: <session-id>" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 3,
-    "method": "tools/call",
-    "params": {
-      "name": "searxng_web_search",
-      "arguments": {"query": "test", "limit": 5}
-    }
-  }'
+claude mcp add --transport http open-mcp http://localhost:3333/mcp
 ```
 
 ## Development
@@ -524,14 +357,15 @@ npx tsx __tests__/unit/search.test.ts
 
 ```bash
 # Remove old version
-claude mcp remove mcp-searxng
+claude mcp remove open-mcp
 
 # Install latest version
-claude mcp add-json -s user mcp-searxng '{
+claude mcp add-json -s user open-mcp '{
   "command": "npx",
   "args": ["-y", "@amplify-studio/open-mcp@latest"],
   "env": {
-    "GATEWAY_URL": "https://your-gateway-instance.com"
+    "GATEWAY_URL": "https://your-gateway-instance.com",
+    "ZHIPUAI_API_KEY": "your-zhipu-api-key"
   }
 }'
 ```
@@ -542,12 +376,13 @@ If you encounter issues after updating:
 
 ```bash
 npm cache clean --force
-claude mcp remove mcp-searxng
-claude mcp add-json -s user mcp-searxng '{
+claude mcp remove open-mcp
+claude mcp add-json -s user open-mcp '{
   "command": "npx",
   "args": ["-y", "@amplify-studio/open-mcp@latest"],
   "env": {
-    "GATEWAY_URL": "https://your-gateway-instance.com"
+    "GATEWAY_URL": "https://your-gateway-instance.com",
+    "ZHIPUAI_API_KEY": "your-zhipu-api-key"
   }
 }'
 ```

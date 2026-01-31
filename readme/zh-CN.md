@@ -22,6 +22,8 @@ Deploy your own local web search and page reading service in one click. Powered 
 
 - 🔍 **网络搜索** - 支持分页、时间过滤、语言选择的网络搜索
 - 📄 **URL 读取** - 将网页内容提取为 markdown，支持高级过滤
+- 🎨 **图像理解** - 使用智谱 AI 分析图像、视频和文档
+- 🖼️ **图像生成** - 使用智谱 AI 从文本生成图像
 
 ### 服务器特性 / Server Features
 
@@ -37,6 +39,7 @@ Deploy your own local web search and page reading service in one click. Powered 
 |---------|------------|
 | 搜索 | [SearXNG](https://searxng.org/) - 尊重隐私的元搜索引擎 |
 | 抓取 | [Firecrawl](https://www.firecrawl.dev/) - 网页抓取 API |
+| 图像 AI | [智谱 AI](https://open.bigmodel.cn/) - 免费视觉模型 |
 | 协议 | [MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk) - 官方实现 |
 
 ---
@@ -53,23 +56,39 @@ Deploy your own local web search and page reading service in one click. Powered 
 
 ## 快速开始
 
-### 先试试效果？
+### 前置条件
 
-直接使用我们的 MCP 服务：
+使用本 MCP 服务器前，您需要：
 
-```bash
-claude mcp add-json -s user mcp-searxng '{
-  "command": "npx",
-  "args": ["-y", "@amplify-studio/open-mcp@latest"],
-  "env": {
-    "GATEWAY_URL": "http://115.190.91.253:80"
+1. **运行中的 Gateway API 实例**，包含 SearXNG 和 Firecrawl
+   - 部署您自己的 Gateway 或使用托管服务
+   - 获取您的 Gateway URL（例如：`http://your-gateway.com:80`）
+
+2. **（可选）智谱 AI API 密钥**用于图像功能
+   - 参见下方的[获取智谱 AI API 密钥](#获取智谱-api-密钥)
+
+### 基本使用
+
+添加到 Claude Desktop 配置文件（`claude_desktop_config.json`）：
+
+```json
+{
+  "mcpServers": {
+    "open-mcp": {
+      "command": "npx",
+      "args": ["-y", "@amplify-studio/open-mcp@latest"],
+      "env": {
+        "GATEWAY_URL": "http://your-gateway.com:80",
+        "ZHIPUAI_API_KEY": "your-zhipu-api-key"
+      }
+    }
   }
-}'
+}
 ```
 
-### 效果不错？想自己部署？
-
-继续阅读下面的部署指南
+**替换以下值：**
+- `http://your-gateway.com:80` 替换为您的实际 Gateway URL（**必需**）
+- `your-zhipu-api-key` 替换为您的智谱 AI API 密钥（**可选** - 仅在需要图像功能时必需）
 
 ---
 
@@ -81,6 +100,8 @@ claude mcp add-json -s user mcp-searxng '{
 
 - 🔍 **网络搜索** - 支持分页、时间过滤、语言选择的网络搜索
 - 📄 **URL 读取** - 将网页内容提取为 markdown，支持高级过滤
+- 🎨 **图像理解** - 使用智谱 AI 分析图像、视频和文档
+- 🖼️ **图像生成** - 使用智谱 AI 从文本生成图像
 
 ### 服务器特性 / Server Features
 
@@ -96,6 +117,7 @@ claude mcp add-json -s user mcp-searxng '{
 |---------|------------|
 | 搜索 | [SearXNG](https://searxng.org/) - 尊重隐私的元搜索引擎 |
 | 抓取 | [Firecrawl](https://www.firecrawl.dev/) - 网页抓取 API |
+| 图像 AI | [智谱 AI](https://open.bigmodel.cn/) - 免费视觉模型 |
 | 协议 | [MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk) - 官方实现 |
 
 ---
@@ -112,11 +134,12 @@ claude mcp add-json -s user mcp-searxng '{
 #### 使用 Claude CLI（推荐）
 
 ```bash
-claude mcp add-json -s user mcp-searxng '{
+claude mcp add-json -s user open-mcp '{
   "command": "npx",
   "args": ["-y", "@amplify-studio/open-mcp@latest"],
   "env": {
-    "GATEWAY_URL": "https://your-gateway-instance.com"
+    "GATEWAY_URL": "https://your-gateway-instance.com",
+    "ZHIPUAI_API_KEY": "your-zhipu-api-key"
   }
 }'
 ```
@@ -128,11 +151,12 @@ claude mcp add-json -s user mcp-searxng '{
 ```json
 {
   "mcpServers": {
-    "mcp-searxng": {
+    "open-mcp": {
       "command": "npx",
       "args": ["-y", "@amplify-studio/open-mcp@latest"],
       "env": {
-        "GATEWAY_URL": "https://your-gateway-instance.com"
+        "GATEWAY_URL": "https://your-gateway-instance.com",
+        "ZHIPUAI_API_KEY": "your-zhipu-api-key"
       }
     }
   }
@@ -146,16 +170,19 @@ claude mcp add-json -s user mcp-searxng '{
 ```json
 {
   "mcpServers": {
-    "mcp-searxng": {
+    "open-mcp": {
       "command": "npx",
       "args": ["-y", "@amplify-studio/open-mcp@latest"],
       "env": {
-        "GATEWAY_URL": "https://your-gateway-instance.com"
+        "GATEWAY_URL": "https://your-gateway-instance.com",
+        "ZHIPUAI_API_KEY": "your-zhipu-api-key"
       }
     }
   }
 }
 ```
+
+**注意**：将 `https://your-gateway-instance.com` 替换为您的 Gateway URL（必需），将 `your-zhipu-api-key` 替换为您的智谱 API 密钥（可选）。
 
 #### HTTP 模式
 
@@ -164,7 +191,7 @@ claude mcp add-json -s user mcp-searxng '{
 MCP_HTTP_PORT=3333 GATEWAY_URL=https://your-gateway-instance.com npx @amplify-studio/open-mcp@latest
 
 # 从 Claude Code 连接
-claude mcp add --transport http mcp-searxng http://localhost:3333/mcp
+claude mcp add --transport http open-mcp http://localhost:3333/mcp
 ```
 
 ## 使用方法
@@ -237,23 +264,6 @@ claude mcp add --transport http mcp-searxng http://localhost:3333/mcp
 }
 ```
 
-### 图片 OCR 工具 / Image OCR Tool
-
-**工具名称：** `image_ocr`
-
-**参数：**
-- `image` (string, required): 图片文件路径、URL 或 base64 数据
-
-**示例：**
-
-```json
-{
-  "image": "/path/to/image.png"
-}
-```
-
-**响应：** 从图片中提取的文本
-
 ### 图片理解工具 / Image Understanding Tool
 
 **工具名称：** `image_understand`
@@ -296,43 +306,45 @@ claude mcp add --transport http mcp-searxng http://localhost:3333/mcp
 
 ## 配置
 
-### 环境变量
+### 必需的环境变量
 
-| 变量 | 必需 | 默认值 | 描述 |
-|---------|---------|---------|-------------------|
-| `GATEWAY_URL` | 否 | `http://115.190.91.253:80` | Gateway API URL |
-| `AUTH_USERNAME` | 否 | - | HTTP 基本身份验证用户名 |
-| `AUTH_PASSWORD` | 否 | - | HTTP 基本身份验证密码 |
-| `USER_AGENT` | 否 | - | 自定义 User-Agent 标头 |
-| `HTTP_PROXY` | 否 | - | HTTP 请求的代理 URL |
-| `HTTPS_PROXY` | 否 | - | HTTPS 请求的代理 URL |
-| `NO_PROXY` | 否 | - | 逗号分隔的绕过列表 |
-| `MCP_HTTP_PORT` | 否 | - | 在指定端口启用 HTTP 传输 |
-| `ZHIPUAI_API_KEY` | 否* | - | 智谱 AI API 密钥，用于图片工具 |
+| 变量 | 描述 |
+|---------|-------------------|
+| `GATEWAY_URL` | **必需。** 您的 Gateway API 地址（例如：`http://your-gateway.com:80`） |
 
-*使用 image_ocr、image_understand 或 image_generate 工具时必需
+### 可选的环境变量
 
-### 完整配置示例
+| 变量 | 描述 |
+|---------|-------------------|
+| `ZHIPUAI_API_KEY` | 可选。仅在需要图像理解/生成功能时必需 |
 
-```json
-{
-  "mcpServers": {
-    "mcp-searxng": {
-      "command": "npx",
-      "args": ["-y", "@amplify-studio/open-mcp@latest"],
-      "env": {
-        "GATEWAY_URL": "https://search.example.com",
-        "AUTH_USERNAME": "your_username",
-        "AUTH_PASSWORD": "your_password",
-        "USER_AGENT": "MyBot/1.0",
-        "HTTP_PROXY": "http://proxy.company.com:8080",
-        "HTTPS_PROXY": "http://proxy.company.com:8080",
-        "NO_PROXY": "localhost,127.0.0.1,.local,.internal"
-      }
-    }
-  }
-}
-```
+**需要高级配置？** 查看 [高级配置指南](docs/advanced-setup-zh.md) 了解代理、认证和 HTTP 传输等选项。
+
+### 获取智谱 AI API 密钥
+
+要使用图像理解和生成功能，您需要从智谱 AI 获取免费的 API 密钥：
+
+1. **通过邀请链接注册**: [https://www.bigmodel.cn/invite?icode=yn2yXKXS+Ba1UqrD19VwPwZ3c5owLmCCcMQXWcJRS8E=](https://www.bigmodel.cn/invite?icode=yn2yXKXS+Ba1UqrD19VwPwZ3c5owLmCCcMQXWcJRS8E=)
+   - 使用邀请链接注册可获得更多权益
+
+2. **获取 API 密钥**:
+   - 注册后，访问 [API Keys 页面](https://www.bigmodel.cn/usercenter/proj-mgmt/apikeys)
+   - 点击"生成新的 API Key"
+   - 复制生成的密钥（格式：`id.secret`）
+
+3. **免费额度说明**:
+   - GLM-4.6V-Flash: 视觉理解免费使用
+   - Cogview-3-Flash: 图像生成免费使用
+   - 基础使用无需绑定银行卡
+
+4. **设置环境变量**:
+   ```bash
+   export ZHIPUAI_API_KEY="your-api-key-here"
+   ```
+
+**注意**: API 密钥是可选的。只有在需要使用图像理解或生成功能时才必需。
+
+---
 
 ## 安装方法
 
@@ -360,15 +372,17 @@ docker pull amplifystudio/open-mcp:latest
 ```json
 {
   "mcpServers": {
-    "mcp-searxng": {
+    "open-mcp": {
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
         "-e", "GATEWAY_URL",
+        "-e", "ZHIPUAI_API_KEY",
         "amplifystudio/open-mcp:latest"
       ],
       "env": {
-        "GATEWAY_URL": "https://your-gateway-instance.com"
+        "GATEWAY_URL": "https://your-gateway-instance.com",
+        "ZHIPUAI_API_KEY": "your-zhipu-api-key"
       }
     }
   }
@@ -444,77 +458,16 @@ node dist/index.js
 
 ## HTTP 传输模式
 
-服务器支持用于远程部署的 HTTP 传输。
+服务器支持用于远程部署的 HTTP 传输。详见 [高级配置指南](docs/advanced-setup-zh.md#http-传输模式)。
 
-### 启动 HTTP 服务器
-
+**快速开始**:
 ```bash
-# 基本启动
-MCP_HTTP_PORT=3333 npx @amplify-studio/open-mcp@latest
-
-# 使用自定义 Gateway
-MCP_HTTP_PORT=3333 GATEWAY_URL=https://your-gateway-instance.com npx @amplify-studio/open-mcp@latest
-
-# 后台模式
-MCP_HTTP_PORT=3333 npx @amplify-studio/open-mcp@latest &
+MCP_HTTP_PORT=3333 GATEWAY_URL=http://your-gateway.com:80 npx @amplify-studio/open-mcp@latest
 ```
 
-### API 端点
-
-| 端点 | 方法 | 描述 |
-|----------|--------|-------------------|
-| `/health` | GET | 健康检查 |
-| `/mcp` | POST | 发送 JSON-RPC 请求 |
-| `/mcp` | GET | 接收 SSE 通知 |
-| `/mcp` | DELETE | 关闭会话 |
-
-### 验证连接
-
+然后从 Claude Code 连接：
 ```bash
-# 健康检查
-curl http://localhost:3333/health
-
-# 预期响应
-# {"status":"healthy","server":"mcp-searxng","version":"0.9.0","transport":"http"}
-```
-
-### curl 命令示例
-
-```bash
-# 1. 初始化会话
-curl -X POST http://localhost:3333/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "initialize",
-    "params": {
-      "protocolVersion": "2025-06-18",
-      "capabilities": {},
-      "clientInfo": {"name": "test-client", "version": "1.0"}
-    }
-  }'
-
-# 2. 列出工具（使用返回的 session-id）
-curl -X POST http://localhost:3333/mcp \
-  -H "Content-Type: application/json" \
-  -H "mcp-session-id: <session-id>" \
-  -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/list"}'
-
-# 3. 调用搜索工具
-curl -X POST http://localhost:3333/mcp \
-  -H "Content-Type: application/json" \
-  -H "mcp-session-id: <session-id>" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 3,
-    "method": "tools/call",
-    "params": {
-      "name": "searxng_web_search",
-      "arguments": {"query": "test", "limit": 5}
-    }
-  }'
+claude mcp add --transport http open-mcp http://localhost:3333/mcp
 ```
 
 ## 开发
@@ -560,14 +513,15 @@ npx tsx __tests__/unit/search.test.ts
 
 ```bash
 # 移除旧版本
-claude mcp remove mcp-searxng
+claude mcp remove open-mcp
 
 # 安装最新版本
-claude mcp add-json -s user mcp-searxng '{
+claude mcp add-json -s user open-mcp '{
   "command": "npx",
   "args": ["-y", "@amplify-studio/open-mcp@latest"],
   "env": {
-    "GATEWAY_URL": "https://your-gateway-instance.com"
+    "GATEWAY_URL": "https://your-gateway-instance.com",
+    "ZHIPUAI_API_KEY": "your-zhipu-api-key"
   }
 }'
 ```
@@ -578,12 +532,13 @@ claude mcp add-json -s user mcp-searxng '{
 
 ```bash
 npm cache clean --force
-claude mcp remove mcp-searxng
-claude mcp add-json -s user mcp-searxng '{
+claude mcp remove open-mcp
+claude mcp add-json -s user open-mcp '{
   "command": "npx",
   "args": ["-y", "@amplify-studio/open-mcp@latest"],
   "env": {
-    "GATEWAY_URL": "https://your-gateway-instance.com"
+    "GATEWAY_URL": "https://your-gateway-instance.com",
+    "ZHIPUAI_API_KEY": "your-zhipu-api-key"
   }
 }'
 ```

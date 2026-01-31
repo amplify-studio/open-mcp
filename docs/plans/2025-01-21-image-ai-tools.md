@@ -942,10 +942,6 @@ capabilities: {
       description: READ_URL_TOOL.description,
       schema: READ_URL_TOOL.inputSchema,
     },
-    image_ocr: {
-      description: IMAGE_OCR_TOOL.description,
-      schema: IMAGE_OCR_TOOL.inputSchema,
-    },
     image_understand: {
       description: IMAGE_UNDERSTAND_TOOL.description,
       schema: IMAGE_UNDERSTAND_TOOL.inputSchema,
@@ -979,7 +975,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
 **Step 4: Add tool call handlers**
 
-Add to the `CallToolRequestSchema` handler (after existing image_ocr handler):
+Add to the `CallToolRequestSchema` handler (after existing image_generate handler):
 
 ```typescript
 } else if (name === "image_understand") {
