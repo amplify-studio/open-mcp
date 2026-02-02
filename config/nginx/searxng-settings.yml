@@ -17,7 +17,7 @@ search:
 
 server:
   # Is overwritten by ${SEARXNG_SECRET}
-  secret_key: "a5c2884876461ac01dd3a95448229d87ad171624f069de579ab7890826f8d403"
+  secret_key: "change-this-secret-key-in-production"
   limiter: false
   image_proxy: false
   method: "GET"
@@ -29,12 +29,12 @@ server:
 
 # Outgoing proxy configuration (for external search engines)
 # Environment variables: HTTP_PROXY, HTTPS_PROXY, NO_PROXY
-outgoing:
-  proxies:
-    http: ${HTTP_PROXY}
-    https: ${HTTPS_PROXY}
-    # Optional: bypass proxy for these hosts
-    # no_proxy: ${NO_PROXY}
+# Note: Proxy is disabled by default. Uncomment and set env vars if needed.
+# outgoing:
+#   proxies:
+#     http: ${HTTP_PROXY}
+#     https: ${HTTPS_PROXY}
+#     # no_proxy: ${NO_PROXY}
 
 valkey:
   # URL to connect valkey database. Is overwritten by ${SEARXNG_VALKEY_URL}.

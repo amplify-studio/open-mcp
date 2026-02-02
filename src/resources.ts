@@ -11,8 +11,6 @@ export function createConfigResource() {
     environment: {
       gatewayUrl: process.env.GATEWAY_URL || "Not configured",
       hasAuth: !!(process.env.AUTH_USERNAME && process.env.AUTH_PASSWORD),
-      hasProxy: !!(process.env.HTTP_PROXY ?? process.env.HTTPS_PROXY ?? process.env.http_proxy ?? process.env.https_proxy),
-      hasNoProxy: !!(process.env.NO_PROXY ?? process.env.no_proxy),
       nodeVersion: process.version,
       currentLogLevel: getCurrentLogLevel()
     },
@@ -76,8 +74,6 @@ Generate images from text using Zhipu Cogview-3-Flash model.
 ### Optional Environment Variables
 - \`ZHIPUAI_API_KEY\`: API key for image tools (understand/generate)
 - \`AUTH_USERNAME\` & \`AUTH_PASSWORD\`: Basic authentication for Gateway
-- \`HTTP_PROXY\` / \`HTTPS_PROXY\`: Proxy server configuration
-- \`NO_PROXY\`: Comma-separated list of hosts to bypass proxy
 - \`MCP_HTTP_PORT\`: Enable HTTP transport on specified port
 
 ## Transport Modes

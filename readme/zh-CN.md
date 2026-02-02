@@ -31,7 +31,7 @@ Deploy your own local web search and page reading service in one click. Powered 
 
 - 💾 **智能缓存** - 自动缓存，TTL 过期机制提高性能
 - 🔄 **双传输模式** - 支持 STDIO 或 HTTP 模式灵活部署
-- 🌐 **代理支持** - 内置代理配置，支持 NO_PROXY 绕过
+- ⏱️ **自动清理** - 3分钟无活动自动关闭，防止僵尸进程
 
 ### 技术支持 / Powered By
 
@@ -109,7 +109,7 @@ Deploy your own local web search and page reading service in one click. Powered 
 
 - 💾 **智能缓存** - 自动缓存，TTL 过期机制提高性能
 - 🔄 **双传输模式** - 支持 STDIO 或 HTTP 模式灵活部署
-- 🌐 **代理支持** - 内置代理配置，支持 NO_PROXY 绕过
+- ⏱️ **自动清理** - 3分钟无活动自动关闭，防止僵尸进程
 
 ### 技术支持 / Powered By
 

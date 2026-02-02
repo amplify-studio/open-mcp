@@ -71,6 +71,7 @@ const server = new Server(
 
 // List tools handler
 server.setRequestHandler(ListToolsRequestSchema, async () => {
+  resetActivityTimeout();
   logMessage(server, "debug", "Handling list_tools request");
   return {
     tools: [
@@ -84,6 +85,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
 // Call tool handler
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  resetActivityTimeout();
   const { name, arguments: args } = request.params;
   logMessage(server, "debug", `Handling call_tool request: ${name}`);
 
@@ -103,7 +105,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!isWebUrlReadArgs(args)) {
           throw new Error("Invalid arguments for URL reading");
         }
-        result = await fetchAndConvertToMarkdown(server, args.url, 10000, {
+        // Use default 30s timeout (undefined) instead of hardcoded 10s
+        result = await fetchAndConvertToMarkdown(server, args.url, undefined, {
           startChar: args.startChar,
           maxLength: args.maxLength,
           section: args.section,
@@ -148,6 +151,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 // Logging level handler
 server.setRequestHandler(SetLevelRequestSchema, async (request) => {
+  resetActivityTimeout();
   const { level } = request.params;
   logMessage(server, "info", `Setting log level to: ${level}`);
   setLogLevel(level);
@@ -156,6 +160,7 @@ server.setRequestHandler(SetLevelRequestSchema, async (request) => {
 
 // List resources handler
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  resetActivityTimeout();
   logMessage(server, "debug", "Handling list_resources request");
   return {
     resources: [
@@ -177,6 +182,7 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
 
 // Read resource handler
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  resetActivityTimeout();
   const { uri } = request.params;
   logMessage(server, "debug", `Handling read_resource request for: ${uri}`);
 
@@ -208,8 +214,53 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   }
 });
 
+// Inactivity timeout: shut down after 3 minutes of no client requests
+const INACTIVITY_TIMEOUT_MS = 180000; // 3 minutes
+let activityTimeout: NodeJS.Timeout | undefined;
+
+/**
+ * Reset the inactivity timer. Called on every MCP request.
+ * If no request occurs within the timeout period, the server exits.
+ */
+function resetActivityTimeout(): void {
+  clearTimeout(activityTimeout);
+  activityTimeout = setTimeout(() => {
+    logMessage(server, "info", `No activity for ${INACTIVITY_TIMEOUT_MS / 1000}s, shutting down`);
+    process.exit(0);
+  }, INACTIVITY_TIMEOUT_MS);
+}
+
+// Shutdown configuration
+const SHUTDOWN_TIMEOUT_MS = 10000;
+
+function setupShutdownHandlers(mode: 'http' | 'stdio', httpServer?: import('http').Server): void {
+  const shutdown = (signal: string): void => {
+    clearTimeout(activityTimeout);
+    const logFn = mode === 'http' ? console.log : (msg: string) => logMessage(server, 'info', msg);
+    logFn(`Received ${signal}. Shutting down ${mode.toUpperCase()} server...`);
+
+    if (mode === 'http' && httpServer) {
+      const timeoutId = setTimeout(() => {
+        console.error('Forced shutdown after timeout');
+        process.exit(1);
+      }, SHUTDOWN_TIMEOUT_MS);
+
+      httpServer.close(() => {
+        clearTimeout(timeoutId);
+        console.log('HTTP server closed');
+        process.exit(0);
+      });
+    } else {
+      process.exit(0);
+    }
+  };
+
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
 // Main function
-async function main() {
+async function main(): Promise<void> {
   // Environment validation
   const validationError = validateEnv();
   if (validationError) {
@@ -233,6 +284,7 @@ async function main() {
       process.exit(1);
     }
 
+    console.log(`GATEWAY_URL: ${gatewayUrlDisplay}`);
     console.log(`Starting HTTP transport on port ${port}`);
     const app = await createHttpServer(server);
 
@@ -242,17 +294,7 @@ async function main() {
       console.log(`MCP endpoint: http://localhost:${port}/mcp`);
     });
 
-    // Handle graceful shutdown
-    const shutdown = (signal: string) => {
-      console.log(`Received ${signal}. Shutting down HTTP server...`);
-      httpServer.close(() => {
-        console.log("HTTP server closed");
-        process.exit(0);
-      });
-    };
-
-    process.on('SIGINT', () => shutdown('SIGINT'));
-    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    setupShutdownHandlers('http', httpServer);
   } else {
     // Default STDIO transport
     // Show helpful message when running in terminal
@@ -264,12 +306,29 @@ async function main() {
     }
 
     const transport = new StdioServerTransport();
+
+    // Handle stdin close (when client disconnects)
+    const handleStdioClose = () => {
+      clearTimeout(activityTimeout);
+      logMessage(server, "info", "STDIO connection closed by client");
+      transport.close().then(() => process.exit(0));
+    };
+
+    // Listen for both stdin close and transport close
+    process.stdin.on('close', handleStdioClose);
+    transport.onclose = handleStdioClose;
+
     await server.connect(transport);
+
+    // Start inactivity timer after connection
+    resetActivityTimeout();
 
     // Log after connection is established
     logMessage(server, "info", `MCP SearXNG Server v${packageVersion} connected via STDIO`);
     logMessage(server, "info", `Environment: ${process.env.NODE_ENV || 'development'}`);
     logMessage(server, "info", `Gateway URL: ${gatewayUrlDisplay}`);
+
+    setupShutdownHandlers('stdio');
   }
 }
 

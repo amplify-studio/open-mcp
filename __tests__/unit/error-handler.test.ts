@@ -12,8 +12,6 @@ import {
   createConfigurationError,
   createNetworkError,
   createServerError,
-  createJSONError,
-  createDataError,
   createNoResultsMessage,
   createURLFormatError,
   createContentError,
@@ -94,8 +92,6 @@ async function runTests() {
   await testFunction('Specialized error creators', () => {
     const context = { searxngUrl: 'https://searx.example.com' };
 
-    assert.ok(createJSONError('invalid json', context) instanceof MCPSearXNGError);
-    assert.ok(createDataError({}, context) instanceof MCPSearXNGError);
     assert.ok(createURLFormatError('invalid-url') instanceof MCPSearXNGError);
     assert.ok(createContentError('test error', 'https://example.com') instanceof MCPSearXNGError);
     assert.ok(createTimeoutError(5000, 'https://example.com') instanceof MCPSearXNGError);
@@ -132,7 +128,7 @@ async function runTests() {
     envManager.delete('GATEWAY_URL');
 
     const result = validateEnvironment();
-    // GATEWAY_URL is optional, defaults to http://115.190.91.253:80
+    // GATEWAY_URL is optional but must be set to a valid URL when provided
     assert.equal(result, null);
 
     envManager.restore();

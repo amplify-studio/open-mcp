@@ -29,7 +29,7 @@ Infrastructure capabilities for deployment and performance:
 
 - 💾 **Smart Caching** - Automatic caching with TTL to improve performance
 - 🔄 **Dual Transport** - STDIO or HTTP modes for flexible deployment
-- 🌐 **Proxy Support** - Built-in proxy configuration with NO_PROXY bypass
+- ⏱️ **Auto Cleanup** - Automatic shutdown after 3min of inactivity
 
 ### Powered By
 
@@ -439,6 +439,5 @@ Special thanks to these amazing projects:
 
 [![Star History Chart](https://api.star-history.com/svg?repos=amplify-studio/open-mcp&type=Date)](https://star-history.com/#amplify-studio/open-mcp&Date)
 
----
 
 **Made with ❤️ by [Amplify Studio](https://github.com/amplify-studio)**

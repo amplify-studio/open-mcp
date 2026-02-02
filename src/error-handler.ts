@@ -75,15 +75,6 @@ export function createServerError(status: number, statusText: string, _responseB
   return new MCPSearXNGError(`🚫 ${target} Error (${status}): ${statusText}`);
 }
 
-export function createJSONError(responseText: string, _context: ErrorContext): MCPSearXNGError {
-  const preview = responseText.substring(0, 100).replace(/\n/g, ' ');
-  return new MCPSearXNGError(`🔍 Response Error: Invalid JSON format. Response: "${preview}..."`);
-}
-
-export function createDataError(_data: any, _context: ErrorContext): MCPSearXNGError {
-  return new MCPSearXNGError(`🔍 Response Error: Missing results array in response`);
-}
-
 export function createNoResultsMessage(query: string): string {
   return `🔍 No results found for "${query}". Try different search terms or check if the Gateway service is working.`;
 }

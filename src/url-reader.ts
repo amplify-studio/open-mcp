@@ -1,5 +1,4 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { createProxyAgent } from "./proxy.js";
 import { logMessage } from "./logging.js";
 import { urlCache } from "./cache.js";
 import {
@@ -144,9 +143,9 @@ function applyPaginationOptions(markdownContent: string, options: PaginationOpti
 export async function fetchAndConvertToMarkdown(
   server: Server,
   url: string,
-  timeoutMs: number = 10000,
+  timeoutMs: number = 30000, // Increased default from 10s to 30s
   paginationOptions: PaginationOptions = {}
-) {
+): Promise<string> {
   const startTime = Date.now();
   logMessage(server, "info", `Fetching URL: ${url}`);
 
@@ -181,21 +180,22 @@ export async function fetchAndConvertToMarkdown(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    // Prepare request options with proxy support
+    // Prepare request options
     const requestOptions: RequestInit = {
       signal: controller.signal,
     };
 
-    // Add proxy dispatcher if proxy is configured
-    const proxyAgent = createProxyAgent(gatewayApiUrl);
-    if (proxyAgent) {
-      (requestOptions as any).dispatcher = proxyAgent;
-    }
-
     let response: Response;
     try {
+      logMessage(server, "info", `Fetching from Gateway: ${gatewayApiUrl}`);
       response = await fetch(gatewayApiUrl, requestOptions);
+      logMessage(server, "info", `Gateway response status: ${response.status}`);
     } catch (error: any) {
+      if (error.name === 'AbortError') {
+        logMessage(server, "error", `Gateway request timeout: ${url} (${timeoutMs}ms)`);
+        throw createTimeoutError(timeoutMs, url);
+      }
+      logMessage(server, "error", `Gateway network error: ${error.message}`, { url, gatewayUrl });
       throw createNetworkError(error, { url, gatewayUrl, timeout: timeoutMs });
     }
 

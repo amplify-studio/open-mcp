@@ -1,10 +1,10 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { createProxyAgent } from "./proxy.js";
 import { logMessage } from "./logging.js";
 import {
   createConfigurationError,
   createNetworkError,
   createServerError,
+  createTimeoutError,
   GATEWAY_URL_REQUIRED_MESSAGE,
   type ErrorContext
 } from "./error-handler.js";
@@ -13,7 +13,7 @@ export async function performWebSearch(
   server: Server,
   query: string,
   limit: number = 10
-) {
+): Promise<string> {
   const startTime = Date.now();
 
   logMessage(server, "info", `Starting web search: "${query}" (limit: ${limit})`);
@@ -48,12 +48,6 @@ export async function performWebSearch(
     body: JSON.stringify(requestBody)
   };
 
-  // Add proxy dispatcher if configured
-  const proxyAgent = createProxyAgent(searchUrl.toString());
-  if (proxyAgent) {
-    (requestOptions as any).dispatcher = proxyAgent;
-  }
-
   // Add basic authentication if configured
   const username = process.env.AUTH_USERNAME;
   const password = process.env.AUTH_PASSWORD;
@@ -69,12 +63,23 @@ export async function performWebSearch(
     (requestOptions.headers as Record<string, string>)['User-Agent'] = userAgent;
   }
 
+  // Add timeout to prevent hanging
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+  requestOptions.signal = controller.signal;
+
   // Fetch with error handling
   let response: Response;
   try {
     logMessage(server, "info", `Making POST request to: ${searchUrl.toString()}`);
     response = await fetch(searchUrl.toString(), requestOptions);
+    clearTimeout(timeoutId);
   } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      logMessage(server, "error", `Request timeout after 30s: ${searchUrl.toString()}`);
+      throw createTimeoutError(30000, searchUrl.toString());
+    }
     logMessage(server, "error", `Network error during search request: ${error.message}`, { query, url: searchUrl.toString() });
     throw createNetworkError(error, { url: searchUrl.toString(), gatewayUrl });
   }
