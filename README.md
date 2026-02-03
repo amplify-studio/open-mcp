@@ -65,6 +65,59 @@ Before using this MCP server, you need:
 2. **(Optional) Zhipu AI API Key** for image features
    - See [Getting Zhipu AI API Key](#getting-zhipu-ai-api-key) below
 
+### Setting Up Gateway
+
+The open-mcp server requires a Gateway API instance. You can deploy your own using Docker Compose:
+
+**Quick Start:**
+
+```bash
+# Clone the repository (if not already done)
+git clone https://github.com/amplify-studio/open-mcp.git
+cd open-mcp
+
+# Start the Gateway services
+docker compose --env-file .env up -d
+
+# Verify it's running
+curl http://localhost:80/health
+```
+
+**What's Included:**
+
+The Gateway includes 7 services that work together:
+
+| Service | Purpose | Port |
+|---------|---------|------|
+| **SearXNG** | Privacy-respecting metasearch engine | 8888 (internal) |
+| **Firecrawl API** | Web scraping and crawling | 3002 (internal) |
+| **Playwright** | Browser automation for dynamic content | 3000 (internal) |
+| **Reader Adapter** | Jina Reader compatible API | 8082 (internal) |
+| **Redis** | Rate limiting and caching | 6379 (internal) |
+| **PostgreSQL** | Data persistence | 5432 (internal) |
+| **Nginx** | API gateway (public endpoint) | **80** |
+
+**API Endpoints (via Nginx on port 80):**
+
+- 🔍 **Search:** `http://localhost:80/api/search/`
+- 📄 **Read URL:** `http://localhost:80/api/read/<url>`
+- 📊 **Status:** `http://localhost:80/api/status`
+
+**Management:**
+
+```bash
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
+
+# Restart services
+docker compose restart
+```
+
+For detailed configuration, see [docker-compose.yml](docker-compose.yml) and [.env.example](.env.example).
+
 ### Basic Usage
 
 Add to your Claude Desktop configuration (`claude_desktop_config.json`):

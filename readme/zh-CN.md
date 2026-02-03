@@ -67,6 +67,59 @@ Deploy your own local web search and page reading service in one click. Powered 
 2. **（可选）智谱 AI API 密钥**用于图像功能
    - 参见下方的[获取智谱 AI API 密钥](#获取智谱-api-密钥)
 
+### 部署 Gateway
+
+本 MCP 服务器需要 Gateway API 实例。您可以使用 Docker Compose 部署您自己的 Gateway：
+
+**快速开始：**
+
+```bash
+# 克隆仓库（如果还没有）
+git clone https://github.com/amplify-studio/open-mcp.git
+cd open-mcp
+
+# 启动 Gateway 服务
+docker compose --env-file .env up -d
+
+# 验证服务是否运行
+curl http://localhost:80/health
+```
+
+**包含的服务：**
+
+Gateway 包含 7 个协同工作的服务：
+
+| 服务 | 用途 | 端口 |
+|---------|---------|------|
+| **SearXNG** | 尊重隐私的元搜索引擎 | 8888（内部） |
+| **Firecrawl API** | 网页抓取和爬取 | 3002（内部） |
+| **Playwright** | 浏览器自动化（动态内容） | 3000（内部） |
+| **Reader Adapter** | Jina Reader 兼容 API | 8082（内部） |
+| **Redis** | 速率限制和缓存 | 6379（内部） |
+| **PostgreSQL** | 数据持久化 | 5432（内部） |
+| **Nginx** | API 网关（公共端点） | **80** |
+
+**API 端点（通过 Nginx 在 80 端口）：**
+
+- 🔍 **搜索：** `http://localhost:80/api/search/`
+- 📄 **读取 URL：** `http://localhost:80/api/read/<url>`
+- 📊 **状态：** `http://localhost:80/api/status`
+
+**管理命令：**
+
+```bash
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
+
+# 重启服务
+docker compose restart
+```
+
+详细配置请参阅 [docker-compose.yml](../docker-compose.yml) 和 [.env.example](../.env.example)。
+
 ### 基本使用
 
 添加到 Claude Desktop 配置文件（`claude_desktop_config.json`）：
