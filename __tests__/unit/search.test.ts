@@ -20,39 +20,24 @@ const envManager = new EnvManager();
 async function runTests() {
   console.log('🧪 Testing: search.ts\n');
 
-  await testFunction('Error handling for missing SEARXNG_URL', async () => {
-    envManager.delete('SEARXNG_URL');
-    
-    const mockServer = createMockServer();
-    
-    try {
-      await performWebSearch(mockServer as any, 'test query');
-      assert.fail('Should have thrown configuration error');
-    } catch (error: any) {
-      assert.ok(error.message.includes('SEARXNG_URL not configured') || error.message.includes('Configuration'));
-    }
-    
-    envManager.restore();
-  }, results);
+  await testFunction('Error handling for invalid GATEWAY_URL format', async () => {
+    envManager.set('GATEWAY_URL', 'not-a-valid-url');
 
-  await testFunction('Error handling for invalid SEARXNG_URL format', async () => {
-    envManager.set('SEARXNG_URL', 'not-a-valid-url');
-    
     const mockServer = createMockServer();
-    
+
     try {
       await performWebSearch(mockServer as any, 'test query');
       assert.fail('Should have thrown configuration error for invalid URL');
     } catch (error: any) {
-      assert.ok(error.message.includes('Configuration Error') || error.message.includes('Invalid SEARXNG_URL'));
+      assert.ok(error.message.includes('Configuration Error') || error.message.includes('Invalid GATEWAY_URL'));
     }
-    
+
     envManager.restore();
   }, results);
 
   await testFunction('Parameter validation and URL construction', async () => {
-    envManager.set('SEARXNG_URL', 'https://test-searx.example.com');
-    
+    envManager.set('GATEWAY_URL', 'https://test-gateway.example.com');
+
     const mockServer = createMockServer();
     const { mockFetch, getCapturedUrl, getCapturedOptions } = createCapturingMockFetch();
 
@@ -62,30 +47,25 @@ async function runTests() {
     });
 
     try {
-      await performWebSearch(mockServer as any, 'test query', 2, 'day', 'en', '1');
+      await performWebSearch(mockServer as any, 'test query', 5);
     } catch (error: any) {
       // Expected to fail with mock error
     }
 
     // Verify URL construction
     const url = new URL(getCapturedUrl());
-    assert.ok(url.pathname.includes('/search'));
-    assert.ok(url.searchParams.get('q') === 'test query');
-    assert.ok(url.searchParams.get('pageno') === '2');
-    assert.ok(url.searchParams.get('time_range') === 'day');
-    assert.ok(url.searchParams.get('language') === 'en');
-    assert.ok(url.searchParams.get('safesearch') === '1');
-    assert.ok(url.searchParams.get('format') === 'json');
+    assert.ok(url.pathname.includes('/api/firecrawl-search'));
+    assert.ok(url.hostname.includes('test-gateway.example.com'));
 
     fetchMocker.restore();
     envManager.restore();
   }, results);
 
   await testFunction('Authentication header construction', async () => {
-    envManager.set('SEARXNG_URL', 'https://test-searx.example.com');
+    envManager.set('GATEWAY_URL', 'https://test-gateway.example.com');
     envManager.set('AUTH_USERNAME', 'testuser');
     envManager.set('AUTH_PASSWORD', 'testpass');
-    
+
     const mockServer = createMockServer();
     const { mockFetch, getCapturedOptions } = createCapturingMockFetch();
 
@@ -112,7 +92,7 @@ async function runTests() {
   }, results);
 
   await testFunction('Server error handling with different status codes', async () => {
-    envManager.set('SEARXNG_URL', 'https://test-searx.example.com');
+    envManager.set('GATEWAY_URL', 'https://test-gateway.example.com');
     
     const mockServer = createMockServer();
     const statusCodes = [404, 500, 502, 503];
@@ -141,7 +121,7 @@ async function runTests() {
   }, results);
 
   await testFunction('JSON parsing error handling', async () => {
-    envManager.set('SEARXNG_URL', 'https://test-searx.example.com');
+    envManager.set('GATEWAY_URL', 'https://test-gateway.example.com');
     
     const mockServer = createMockServer();
     
@@ -165,8 +145,8 @@ async function runTests() {
   }, results);
 
   await testFunction('Missing results data error handling', async () => {
-    envManager.set('SEARXNG_URL', 'https://test-searx.example.com');
-    
+    envManager.set('GATEWAY_URL', 'https://test-gateway.example.com');
+
     const mockServer = createMockServer();
     const mockFetch = createMockFetch({ json: { query: 'test' } });
 
@@ -176,7 +156,7 @@ async function runTests() {
       await performWebSearch(mockServer as any, 'test query');
       assert.fail('Should have thrown data error for missing results');
     } catch (error: any) {
-      assert.ok(error.message.includes('Data Error') || error.message.includes('results'));
+      assert.ok(error.message.includes('Invalid response format') || error.message.includes('results'));
     }
 
     fetchMocker.restore();
@@ -184,8 +164,8 @@ async function runTests() {
   }, results);
 
   await testFunction('Empty results handling', async () => {
-    envManager.set('SEARXNG_URL', 'https://test-searx.example.com');
-    
+    envManager.set('GATEWAY_URL', 'https://test-gateway.example.com');
+
     const mockServer = createMockServer();
     const mockFetch = createMockFetch({ json: { results: [] } });
 
@@ -193,14 +173,15 @@ async function runTests() {
 
     const result = await performWebSearch(mockServer as any, 'test query');
     assert.ok(typeof result === 'string');
-    assert.ok(result.includes('No results found'));
+    const parsed = JSON.parse(result);
+    assert.equal(parsed.totalCount, 0);
 
     fetchMocker.restore();
     envManager.restore();
   }, results);
 
   await testFunction('Successful search with results formatting', async () => {
-    envManager.set('SEARXNG_URL', 'https://test-searx.example.com');
+    envManager.set('GATEWAY_URL', 'https://test-gateway.example.com');
     
     const mockServer = createMockServer();
     const mockFetch = createMockFetch({

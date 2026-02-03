@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an MCP (Model Context Protocol) server that provides web search and URL reading capabilities via a Gateway API. The server is written in TypeScript using the `@modelcontextprotocol/sdk`. It connects to a Gateway service that uses Firecrawl for search and URL reading operations.
+This is an MCP (Model Context Protocol) server that provides web search, URL reading, and image AI capabilities via a Gateway API. The server is written in TypeScript using the `@modelcontextprotocol/sdk`. It connects to a Gateway service that uses Firecrawl for search and URL reading operations, and Zhipu AI for image understanding and generation.
 
 ## Development Commands
 
@@ -44,7 +44,6 @@ SEARXNG_URL=https://test-searx.example.com OPENAI_API_KEY=your-key npx mcp-eval 
 - `src/search.ts` - `performWebSearch()` - Queries Gateway API's `/api/firecrawl-search` endpoint. Uses Firecrawl search via Gateway. Returns formatted JSON with query, results array, totalCount, and duration.
 - `src/url-reader.ts` - `fetchAndConvertToMarkdown()` - Fetches via Gateway API's `/api/read/{url}` endpoint. Supports advanced pagination options (startChar, maxLength, section, paragraphRange, readHeadings). Processes markdown returned from Gateway (no local HTML conversion).
 - `src/cache.ts` - Simple in-memory cache for URL content with TTL (default 1 minute, 30s cleanup interval)
-- `src/proxy.ts` - Creates Undici `ProxyAgent` with NO_PROXY bypass support. Proxy agent is attached to request options via `dispatcher` property.
 - `src/error-handler.ts` - Custom `MCPSearXNGError` class with factory functions: `createConfigurationError`, `createNetworkError`, `createServerError`, `createURLFormatError`, `createTimeoutError`, etc. Also contains `validateEnvironment()` for startup validation.
 - `src/logging.ts` - Logging utilities using MCP protocol's `server.logging()` with level support (debug, info, warning, error)
 - `src/resources.ts` - MCP resource providers: `createConfigResource()` returns server config as JSON, `createHelpResource()` returns usage guide
@@ -57,13 +56,14 @@ SEARXNG_URL=https://test-searx.example.com OPENAI_API_KEY=your-key npx mcp-eval 
 
 ## Environment Variables
 
+### Required
+- `GATEWAY_URL` - Gateway API URL (e.g., `http://localhost:80` or `https://your-gateway.com`)
+
 ### Optional
-- `GATEWAY_URL` - Gateway API URL (default: `http://115.190.91.253:80`)
 - `AUTH_USERNAME` / `AUTH_PASSWORD` - HTTP Basic Auth for Gateway requests
 - `USER_AGENT` - Custom User-Agent header
-- `HTTP_PROXY` / `HTTPS_PROXY` - Proxy URLs (uses Undici ProxyAgent)
-- `NO_PROXY` - Comma-separated bypass list for proxy
 - `MCP_HTTP_PORT` - Enable HTTP transport on specified port
+- `ZHIPUAI_API_KEY` - Zhipu AI API key for image understanding and generation tools
 
 ## MCP Tools
 
@@ -74,6 +74,14 @@ SEARXNG_URL=https://test-searx.example.com OPENAI_API_KEY=your-key npx mcp-eval 
 2. **web_url_read** - Fetch URL content via Gateway API
    - Parameters: `url` (required), `startChar`, `maxLength`, `section`, `paragraphRange`, `readHeadings` (all optional)
    - Returns JSON with url, content (markdown), charCount, duration, cached status
+
+3. **image_understand** - Analyze images, videos, and documents using Zhipu AI GLM-4.6V-Flash
+   - Parameters: `file` (required - file path, URL, or base64), `prompt` (required), `thinking` (optional, default true)
+   - Returns JSON with analysis result
+
+4. **image_generate** - Generate images from text using Zhipu AI Cogview-3-Flash
+   - Parameters: `prompt` (required), `size` (optional, default "1024x1024")
+   - Returns JSON with generated image URL
 
 ## MCP Resources
 
@@ -106,6 +114,24 @@ All errors use the custom `MCPSearXNGError` class with emoji-prefixed messages f
 - 📄 Content Error
 - ⏱️ Timeout Error
 - ❓ Unexpected Error
+
+## Server Features
+
+### Inactivity Timeout
+
+The server includes an automatic inactivity timeout feature:
+- **3 minutes** of no client activity triggers automatic shutdown
+- Timer resets on any MCP request (tools, resources, logging)
+- Prevents zombie processes from accumulating
+- See `docs/inactivity-timeout.md` for details
+
+### Image AI Tools
+
+Image understanding and generation tools powered by Zhipu AI:
+- Free tier access to GLM-4.6V-Flash (vision) and Cogview-3-Flash (generation)
+- Supports images, videos, and documents
+- OCR, content analysis, and code generation from screenshots
+- See `docs/features/image-ai-tools.md` for details
 
 ## Important Implementation Notes
 

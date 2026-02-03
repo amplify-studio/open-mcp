@@ -45,7 +45,7 @@ The project already has HTTP transport support via `MCP_HTTP_PORT` environment v
 MCP_HTTP_PORT=3333 npm start
 
 # With environment variables
-GATEWAY_URL=http://115.190.91.253:80 MCP_HTTP_PORT=3333 npm start
+GATEWAY_URL=http://localhost:80 MCP_HTTP_PORT=3333 npm start
 ```
 
 **Verify:**

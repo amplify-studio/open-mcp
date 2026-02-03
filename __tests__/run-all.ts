@@ -12,7 +12,6 @@ import { TestResult } from './helpers/test-utils.js';
 import { runTests as runLoggingTests } from './unit/logging.test.js';
 import { runTests as runTypesTests } from './unit/types.test.js';
 import { runTests as runCacheTests } from './unit/cache.test.js';
-import { runTests as runProxyTests } from './unit/proxy.test.js';
 import { runTests as runErrorHandlerTests } from './unit/error-handler.test.js';
 import { runTests as runResourcesTests } from './unit/resources.test.js';
 import { runTests as runSearchTests } from './unit/search.test.js';
@@ -31,12 +30,11 @@ const testSuites: TestSuite[] = [
   { name: 'Logging', category: 'unit', run: runLoggingTests },
   { name: 'Types', category: 'unit', run: runTypesTests },
   { name: 'Cache', category: 'unit', run: runCacheTests },
-  { name: 'Proxy', category: 'unit', run: runProxyTests },
   { name: 'Error Handler', category: 'unit', run: runErrorHandlerTests },
   { name: 'Resources', category: 'unit', run: runResourcesTests },
   { name: 'Search', category: 'unit', run: runSearchTests },
   { name: 'URL Reader', category: 'unit', run: runUrlReaderTests },
-  
+
   // Integration Tests
   { name: 'HTTP Server', category: 'integration', run: runHttpServerTests },
   { name: 'Main Index', category: 'integration', run: runIndexTests },

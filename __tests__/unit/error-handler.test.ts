@@ -12,12 +12,9 @@ import {
   createConfigurationError,
   createNetworkError,
   createServerError,
-  createJSONError,
-  createDataError,
   createNoResultsMessage,
   createURLFormatError,
   createContentError,
-  createConversionError,
   createTimeoutError,
   createEmptyContentWarning,
   createUnexpectedError,
@@ -94,12 +91,9 @@ async function runTests() {
 
   await testFunction('Specialized error creators', () => {
     const context = { searxngUrl: 'https://searx.example.com' };
-    
-    assert.ok(createJSONError('invalid json', context) instanceof MCPSearXNGError);
-    assert.ok(createDataError({}, context) instanceof MCPSearXNGError);
+
     assert.ok(createURLFormatError('invalid-url') instanceof MCPSearXNGError);
     assert.ok(createContentError('test error', 'https://example.com') instanceof MCPSearXNGError);
-    assert.ok(createConversionError(new Error('test'), 'https://example.com', '<html>') instanceof MCPSearXNGError);
     assert.ok(createTimeoutError(5000, 'https://example.com') instanceof MCPSearXNGError);
     assert.ok(createUnexpectedError(new Error('test'), context) instanceof MCPSearXNGError);
   }, results);
@@ -107,70 +101,70 @@ async function runTests() {
   await testFunction('Message creators', () => {
     assert.ok(typeof createNoResultsMessage('test query') === 'string');
     assert.ok(createNoResultsMessage('test').includes('No results found'));
-    
-    const warning = createEmptyContentWarning('https://example.com', 100, '<html>');
+
+    const warning = createEmptyContentWarning('https://example.com');
     assert.ok(typeof warning === 'string');
     assert.ok(warning.includes('Content Warning'));
   }, results);
 
-  await testFunction('createEmptyContentWarning with various content', () => {
-    const contents = ['', '<html></html>', '<div>content</div>', 'plain text'];
-    for (const content of contents) {
-      const warning = createEmptyContentWarning('https://test.com', content.length, content);
+  await testFunction('createEmptyContentWarning with various URLs', () => {
+    const urls = ['https://test.com', 'https://example.com', 'https://foo.bar'];
+    for (const url of urls) {
+      const warning = createEmptyContentWarning(url);
       assert.ok(typeof warning === 'string');
     }
   }, results);
 
   await testFunction('validateEnvironment success', () => {
-    envManager.set('SEARXNG_URL', 'https://valid-url.com');
-    
+    envManager.set('GATEWAY_URL', 'https://valid-url.com');
+
     const result = validateEnvironment();
     assert.equal(result, null);
-    
+
     envManager.restore();
   }, results);
 
-  await testFunction('validateEnvironment - missing SEARXNG_URL', () => {
-    envManager.delete('SEARXNG_URL');
-    
+  await testFunction('validateEnvironment - GATEWAY_URL is optional', () => {
+    envManager.delete('GATEWAY_URL');
+
     const result = validateEnvironment();
-    assert.ok(typeof result === 'string');
-    assert.ok(result!.includes('SEARXNG_URL not set'));
-    
+    // GATEWAY_URL is optional but must be set to a valid URL when provided
+    assert.equal(result, null);
+
     envManager.restore();
   }, results);
 
   await testFunction('validateEnvironment - invalid URL format', () => {
-    envManager.set('SEARXNG_URL', 'not-a-valid-url');
-    
+    envManager.set('GATEWAY_URL', 'not-a-valid-url');
+
     const result = validateEnvironment();
     assert.ok(typeof result === 'string');
-    assert.ok(result!.includes('invalid format') || result!.includes('invalid protocol') || result!.includes('Configuration Issues'));
-    
+    assert.ok(result!.includes('invalid format') || result!.includes('Configuration Issues'));
+
     envManager.restore();
   }, results);
 
   await testFunction('validateEnvironment - invalid auth configuration', () => {
-    envManager.set('SEARXNG_URL', 'https://valid.com');
+    envManager.set('GATEWAY_URL', 'https://valid.com');
     envManager.set('AUTH_USERNAME', 'user');
     envManager.delete('AUTH_PASSWORD');
-    
+
     const result = validateEnvironment();
     assert.ok(typeof result === 'string');
-    assert.ok(result!.includes('AUTH_PASSWORD missing'));
-    
+    assert.ok(result!.includes('AUTH_PASSWORD is missing'));
+
     envManager.restore();
   }, results);
 
   await testFunction('validateEnvironment - password without username', () => {
-    envManager.set('SEARXNG_URL', 'https://valid.com');
+    envManager.set('GATEWAY_URL', 'https://valid.com');
     envManager.delete('AUTH_USERNAME');
     envManager.set('AUTH_PASSWORD', 'password');
-    
+
     const result = validateEnvironment();
     assert.ok(typeof result === 'string');
-    assert.ok(result!.includes('AUTH_USERNAME missing'));
-    
+    assert.ok(result!.includes('AUTH_USERNAME is missing'));
+
     envManager.restore();
   }, results);
 
@@ -180,13 +174,13 @@ async function runTests() {
       'ftp://invalid',
       'javascript:alert(1)',
     ];
-    
+
     for (const invalidUrl of invalidUrls) {
-      envManager.set('SEARXNG_URL', invalidUrl);
+      envManager.set('GATEWAY_URL', invalidUrl);
       const result = validateEnvironment();
       assert.ok(typeof result === 'string');
     }
-    
+
     envManager.restore();
   }, results);
 
