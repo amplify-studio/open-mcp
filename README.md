@@ -263,11 +263,11 @@ Our image understanding feature is powered by Zhipu AI GLM-4.6V-Flash, capable o
 
 **Original Image:**
 
-![Image to understand](./image-to-understand.png)
+![Image to understand](./docs/assets/images/image-to-understand.png)
 
 **AI Understanding Result:**
 
-![Image understanding result](./image-understand-result.png)
+![Image understanding result](./docs/assets/images/image-understand-result.png)
 
 For more details about image features, see [Image AI Tools Documentation](./docs/features/image-ai-tools.md)
 
