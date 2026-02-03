@@ -32,7 +32,7 @@ import { createHttpServer } from "./http-server.js";
 import { validateEnvironment as validateEnv } from "./error-handler.js";
 
 // Use a static version string that will be updated by the version script
-const packageVersion = "0.9.0";
+const packageVersion = "0.10.2";
 
 // Export the version for use in other modules
 export { packageVersion };
@@ -69,18 +69,39 @@ const server = new Server(
   }
 );
 
-// List tools handler
+// List tools handler - dynamically return available tools based on configuration
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   resetActivityTimeout();
   logMessage(server, "debug", "Handling list_tools request");
-  return {
-    tools: [
+
+  const hasGateway = !!process.env.GATEWAY_URL;
+  const hasZhipuAI = !!process.env.ZHIPUAI_API_KEY;
+
+  const tools = [];
+
+  // Add gateway-dependent tools if GATEWAY_URL is configured
+  if (hasGateway) {
+    tools.push(WEB_SEARCH_TOOL, READ_URL_TOOL);
+  }
+
+  // Add AI tools if ZHIPUAI_API_KEY is configured
+  if (hasZhipuAI) {
+    tools.push(IMAGE_UNDERSTAND_TOOL, IMAGE_GENERATE_TOOL);
+  }
+
+  // If neither is configured, return all tools (for compatibility)
+  if (tools.length === 0) {
+    tools.push(
       WEB_SEARCH_TOOL,
       READ_URL_TOOL,
       IMAGE_UNDERSTAND_TOOL,
       IMAGE_GENERATE_TOOL
-    ],
-  };
+    );
+  }
+
+  logMessage(server, "info", `Available tools: ${tools.map(t => t.name).join(', ')}`);
+
+  return { tools };
 });
 
 // Call tool handler
@@ -94,6 +115,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     switch (name) {
       case "searxng_web_search": {
+        if (!process.env.GATEWAY_URL) {
+          throw new Error("GATEWAY_URL environment variable is required for web search. Configure it or use image tools only.");
+        }
         if (!isSearXNGWebSearchArgs(args)) {
           throw new Error("Invalid arguments for web search");
         }
@@ -102,6 +126,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "web_url_read": {
+        if (!process.env.GATEWAY_URL) {
+          throw new Error("GATEWAY_URL environment variable is required for URL reading. Configure it or use image tools only.");
+        }
         if (!isWebUrlReadArgs(args)) {
           throw new Error("Invalid arguments for URL reading");
         }
@@ -117,6 +144,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "image_understand": {
+        if (!process.env.ZHIPUAI_API_KEY) {
+          throw new Error("ZHIPUAI_API_KEY environment variable is required for image understanding");
+        }
         if (!isImageUnderstandArgs(args)) {
           throw new Error("Invalid arguments for image understanding");
         }
@@ -125,6 +155,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "image_generate": {
+        if (!process.env.ZHIPUAI_API_KEY) {
+          throw new Error("ZHIPUAI_API_KEY environment variable is required for image generation");
+        }
         if (!isImageGenerateArgs(args)) {
           throw new Error("Invalid arguments for image generation");
         }
@@ -275,7 +308,8 @@ async function main(): Promise<void> {
 
   // Check for HTTP transport mode
   const httpPort = process.env.MCP_HTTP_PORT;
-  const gatewayUrlDisplay = process.env.GATEWAY_URL || "Not configured (required)";
+  const hasZhipuAI = !!process.env.ZHIPUAI_API_KEY;
+  const gatewayUrlDisplay = process.env.GATEWAY_URL || (hasZhipuAI ? "Not configured (optional, AI tools available)" : "Not configured (required for search/URL tools)");
 
   if (httpPort) {
     const port = parseInt(httpPort, 10);
