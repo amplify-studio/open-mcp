@@ -24,11 +24,12 @@
     ],
     "type": "module",
     "bin": {
-        "open-mcp": "dist/index.js"
+        "open-mcp": "bin/open-mcp.js"
     },
     "main": "dist/index.js",
     "files": [
-        "dist"
+        "dist",
+        "bin"
     ],
     "engines": {
         "node": ">=20"
