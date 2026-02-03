@@ -200,6 +200,26 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 
 **Response:** Image URL
 
+---
+
+## Feature Showcase
+
+### Image Understanding Example
+
+Our image understanding feature is powered by Zhipu AI GLM-4.6V-Flash, capable of accurately analyzing images, videos, and documents.
+
+**Original Image:**
+
+![Image to understand](./image-to-understand.png)
+
+**AI Understanding Result:**
+
+![Image understanding result](./image-understand-result.png)
+
+For more details about image features, see [Image AI Tools Documentation](./docs/features/image-ai-tools.md)
+
+---
+
 ## Configuration
 
 ### Required Environment Variables

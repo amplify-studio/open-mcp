@@ -304,6 +304,26 @@ claude mcp add --transport http open-mcp http://localhost:3333/mcp
 
 **响应：** 图片 URL
 
+---
+
+## 功能展示
+
+### 图像理解示例
+
+我们的图像理解功能由智谱 AI GLM-4.6V-Flash 驱动，可以准确分析图片、视频和文档内容。
+
+**原图输入：**
+
+![需要理解的图片](../image-to-understand.png)
+
+**AI 理解结果：**
+
+![图像理解结果](../image-understand-result.png)
+
+如需了解更多图像功能详情，请查看 [图像 AI 工具文档](../docs/features/image-ai-tools.md)
+
+---
+
 ## 配置
 
 ### 必需的环境变量
