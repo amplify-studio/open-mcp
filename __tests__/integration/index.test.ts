@@ -7,11 +7,8 @@
  */
 
 import { strict as assert } from 'node:assert';
-import { 
-  packageVersion, 
-  isWebUrlReadArgs 
-} from '../../src/index.js';
-import { isSearXNGWebSearchArgs } from '../../src/types.js';
+import { packageVersion } from '../../src/index.js';
+import { isSearXNGWebSearchArgs, isWebUrlReadArgs } from '../../src/types.js';
 import { createConfigResource, createHelpResource } from '../../src/resources.js';
 import { testFunction, createTestResults, printTestSummary } from '../helpers/test-utils.js';
 

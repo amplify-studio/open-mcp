@@ -1,10 +1,11 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { createProxyAgent } from "./proxy.js";
 import { logMessage } from "./logging.js";
 import {
   createConfigurationError,
   createNetworkError,
   createServerError,
+  createTimeoutError,
+  GATEWAY_URL_REQUIRED_MESSAGE,
   type ErrorContext
 } from "./error-handler.js";
 
@@ -12,24 +13,25 @@ export async function performWebSearch(
   server: Server,
   query: string,
   limit: number = 10
-) {
+): Promise<string> {
   const startTime = Date.now();
 
   logMessage(server, "info", `Starting web search: "${query}" (limit: ${limit})`);
 
-  const gatewayUrl = process.env.GATEWAY_URL || "http://115.190.91.253:80";
-
-  // Validate gateway URL
-  let parsedUrl: URL;
-  try {
-    parsedUrl = new URL(gatewayUrl);
-  } catch (error) {
-    throw createConfigurationError(
-      `Invalid GATEWAY_URL format: ${gatewayUrl}. Use format: http://115.190.91.253:80`
-    );
+  const gatewayUrl = process.env.GATEWAY_URL;
+  if (!gatewayUrl) {
+    throw createConfigurationError(GATEWAY_URL_REQUIRED_MESSAGE);
   }
 
-  const url = new URL('/api/firecrawl-search', parsedUrl);
+  // Build and validate the endpoint URL
+  let searchUrl: URL;
+  try {
+    searchUrl = new URL('/api/firecrawl-search', gatewayUrl);
+  } catch {
+    throw createConfigurationError(
+      `Invalid GATEWAY_URL format: ${gatewayUrl}. Use format: http://your-gateway.com:80`
+    );
+  }
 
   // Prepare request body
   const requestBody = {
@@ -46,12 +48,6 @@ export async function performWebSearch(
     body: JSON.stringify(requestBody)
   };
 
-  // Add proxy dispatcher if configured
-  const proxyAgent = createProxyAgent(url.toString());
-  if (proxyAgent) {
-    (requestOptions as any).dispatcher = proxyAgent;
-  }
-
   // Add basic authentication if configured
   const username = process.env.AUTH_USERNAME;
   const password = process.env.AUTH_PASSWORD;
@@ -67,20 +63,25 @@ export async function performWebSearch(
     (requestOptions.headers as Record<string, string>)['User-Agent'] = userAgent;
   }
 
+  // Add timeout to prevent hanging
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+  requestOptions.signal = controller.signal;
+
   // Fetch with error handling
   let response: Response;
   try {
-    logMessage(server, "info", `Making POST request to: ${url.toString()}`);
-    response = await fetch(url.toString(), requestOptions);
+    logMessage(server, "info", `Making POST request to: ${searchUrl.toString()}`);
+    response = await fetch(searchUrl.toString(), requestOptions);
+    clearTimeout(timeoutId);
   } catch (error: any) {
-    logMessage(server, "error", `Network error during search request: ${error.message}`, { query, url: url.toString() });
-    const context: ErrorContext = {
-      url: url.toString(),
-      gatewayUrl,
-      proxyAgent: !!proxyAgent,
-      username
-    };
-    throw createNetworkError(error, context);
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      logMessage(server, "error", `Request timeout after 30s: ${searchUrl.toString()}`);
+      throw createTimeoutError(30000, searchUrl.toString());
+    }
+    logMessage(server, "error", `Network error during search request: ${error.message}`, { query, url: searchUrl.toString() });
+    throw createNetworkError(error, { url: searchUrl.toString(), gatewayUrl });
   }
 
   if (!response.ok) {
@@ -90,12 +91,7 @@ export async function performWebSearch(
     } catch {
       responseBody = '[Could not read response body]';
     }
-
-    const context: ErrorContext = {
-      url: url.toString(),
-      gatewayUrl
-    };
-    throw createServerError(response.status, response.statusText, responseBody, context);
+    throw createServerError(response.status, response.statusText, responseBody, { url: searchUrl.toString(), gatewayUrl });
   }
 
   // Parse JSON response
@@ -109,8 +105,6 @@ export async function performWebSearch(
     } catch {
       responseText = '[Could not read response text]';
     }
-
-    const context: ErrorContext = { url: url.toString() };
     throw new Error(`Failed to parse JSON response: ${responseText}`);
   }
 

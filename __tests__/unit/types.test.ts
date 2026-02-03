@@ -7,8 +7,7 @@
  */
 
 import { strict as assert } from 'node:assert';
-import { isSearXNGWebSearchArgs } from '../../src/types.js';
-import { isWebUrlReadArgs } from '../../src/index.js';
+import { isSearXNGWebSearchArgs, isWebUrlReadArgs } from '../../src/types.js';
 import { testFunction, createTestResults, printTestSummary } from '../helpers/test-utils.js';
 
 const results = createTestResults();

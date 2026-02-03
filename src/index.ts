@@ -12,66 +12,30 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 // Import modularized functionality
-import { WEB_SEARCH_TOOL, READ_URL_TOOL, isSearXNGWebSearchArgs } from "./types.js";
+import {
+  IMAGE_GENERATE_TOOL,
+  IMAGE_UNDERSTAND_TOOL,
+  READ_URL_TOOL,
+  WEB_SEARCH_TOOL,
+  isImageGenerateArgs,
+  isImageUnderstandArgs,
+  isSearXNGWebSearchArgs,
+  isWebUrlReadArgs,
+} from "./types.js";
 import { logMessage, setLogLevel } from "./logging.js";
 import { performWebSearch } from "./search.js";
 import { fetchAndConvertToMarkdown } from "./url-reader.js";
+import { understandImage } from "./tools/image-understand.js";
+import { generateImage } from "./tools/image-generate.js";
 import { createConfigResource, createHelpResource } from "./resources.js";
 import { createHttpServer } from "./http-server.js";
 import { validateEnvironment as validateEnv } from "./error-handler.js";
 
 // Use a static version string that will be updated by the version script
-const packageVersion = "0.9.0";
+const packageVersion = "0.10.1";
 
 // Export the version for use in other modules
 export { packageVersion };
-
-// Global state for logging level
-let currentLogLevel: LoggingLevel = "info";
-
-// Type guard for URL reading args
-export function isWebUrlReadArgs(args: unknown): args is {
-  url: string;
-  startChar?: number;
-  maxLength?: number;
-  section?: string;
-  paragraphRange?: string;
-  readHeadings?: boolean;
-} {
-  if (
-    typeof args !== "object" ||
-    args === null ||
-    !("url" in args) ||
-    typeof (args as { url: string }).url !== "string"
-  ) {
-    return false;
-  }
-
-  const urlArgs = args as any;
-
-  // Convert empty strings to undefined for optional string parameters
-  if (urlArgs.section === "") urlArgs.section = undefined;
-  if (urlArgs.paragraphRange === "") urlArgs.paragraphRange = undefined;
-
-  // Validate optional parameters
-  if (urlArgs.startChar !== undefined && (typeof urlArgs.startChar !== "number" || urlArgs.startChar < 0)) {
-    return false;
-  }
-  if (urlArgs.maxLength !== undefined && (typeof urlArgs.maxLength !== "number" || urlArgs.maxLength < 1)) {
-    return false;
-  }
-  if (urlArgs.section !== undefined && typeof urlArgs.section !== "string") {
-    return false;
-  }
-  if (urlArgs.paragraphRange !== undefined && typeof urlArgs.paragraphRange !== "string") {
-    return false;
-  }
-  if (urlArgs.readHeadings !== undefined && typeof urlArgs.readHeadings !== "boolean") {
-    return false;
-  }
-
-  return true;
-}
 
 // Server implementation
 const server = new Server(
@@ -92,6 +56,14 @@ const server = new Server(
           description: READ_URL_TOOL.description,
           schema: READ_URL_TOOL.inputSchema,
         },
+        image_understand: {
+          description: IMAGE_UNDERSTAND_TOOL.description,
+          schema: IMAGE_UNDERSTAND_TOOL.inputSchema,
+        },
+        image_generate: {
+          description: IMAGE_GENERATE_TOOL.description,
+          schema: IMAGE_GENERATE_TOOL.inputSchema,
+        },
       },
     },
   }
@@ -99,66 +71,77 @@ const server = new Server(
 
 // List tools handler
 server.setRequestHandler(ListToolsRequestSchema, async () => {
+  resetActivityTimeout();
   logMessage(server, "debug", "Handling list_tools request");
   return {
-    tools: [WEB_SEARCH_TOOL, READ_URL_TOOL],
+    tools: [
+      WEB_SEARCH_TOOL,
+      READ_URL_TOOL,
+      IMAGE_UNDERSTAND_TOOL,
+      IMAGE_GENERATE_TOOL
+    ],
   };
 });
 
 // Call tool handler
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  resetActivityTimeout();
   const { name, arguments: args } = request.params;
   logMessage(server, "debug", `Handling call_tool request: ${name}`);
 
   try {
-    if (name === "searxng_web_search") {
-      if (!isSearXNGWebSearchArgs(args)) {
-        throw new Error("Invalid arguments for web search");
+    let result: string;
+
+    switch (name) {
+      case "searxng_web_search": {
+        if (!isSearXNGWebSearchArgs(args)) {
+          throw new Error("Invalid arguments for web search");
+        }
+        result = await performWebSearch(server, args.query, args.limit);
+        break;
       }
 
-      const result = await performWebSearch(
-        server,
-        args.query,
-        args.limit
-      );
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: result,
-          },
-        ],
-      };
-    } else if (name === "web_url_read") {
-      if (!isWebUrlReadArgs(args)) {
-        throw new Error("Invalid arguments for URL reading");
+      case "web_url_read": {
+        if (!isWebUrlReadArgs(args)) {
+          throw new Error("Invalid arguments for URL reading");
+        }
+        // Use default 30s timeout (undefined) instead of hardcoded 10s
+        result = await fetchAndConvertToMarkdown(server, args.url, undefined, {
+          startChar: args.startChar,
+          maxLength: args.maxLength,
+          section: args.section,
+          paragraphRange: args.paragraphRange,
+          readHeadings: args.readHeadings,
+        });
+        break;
       }
 
-      const paginationOptions = {
-        startChar: args.startChar,
-        maxLength: args.maxLength,
-        section: args.section,
-        paragraphRange: args.paragraphRange,
-        readHeadings: args.readHeadings,
-      };
+      case "image_understand": {
+        if (!isImageUnderstandArgs(args)) {
+          throw new Error("Invalid arguments for image understanding");
+        }
+        result = await understandImage(args);
+        break;
+      }
 
-      const result = await fetchAndConvertToMarkdown(server, args.url, 10000, paginationOptions);
+      case "image_generate": {
+        if (!isImageGenerateArgs(args)) {
+          throw new Error("Invalid arguments for image generation");
+        }
+        result = await generateImage(args);
+        break;
+      }
 
-      return {
-        content: [
-          {
-            type: "text",
-            text: result,
-          },
-        ],
-      };
-    } else {
-      throw new Error(`Unknown tool: ${name}`);
+      default:
+        throw new Error(`Unknown tool: ${name}`);
     }
+
+    return {
+      content: [{ type: "text", text: result }],
+    };
   } catch (error) {
-    logMessage(server, "error", `Tool execution error: ${error instanceof Error ? error.message : String(error)}`, { 
-      tool: name, 
+    logMessage(server, "error", `Tool execution error: ${error instanceof Error ? error.message : String(error)}`, {
+      tool: name,
       args: args,
       error: error instanceof Error ? error.stack : String(error)
     });
@@ -168,15 +151,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 // Logging level handler
 server.setRequestHandler(SetLevelRequestSchema, async (request) => {
+  resetActivityTimeout();
   const { level } = request.params;
   logMessage(server, "info", `Setting log level to: ${level}`);
-  currentLogLevel = level;
   setLogLevel(level);
   return {};
 });
 
 // List resources handler
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  resetActivityTimeout();
   logMessage(server, "debug", "Handling list_resources request");
   return {
     resources: [
@@ -198,6 +182,7 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
 
 // Read resource handler
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  resetActivityTimeout();
   const { uri } = request.params;
   logMessage(server, "debug", `Handling read_resource request for: ${uri}`);
 
@@ -229,8 +214,53 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   }
 });
 
+// Inactivity timeout: shut down after 3 minutes of no client requests
+const INACTIVITY_TIMEOUT_MS = 180000; // 3 minutes
+let activityTimeout: NodeJS.Timeout | undefined;
+
+/**
+ * Reset the inactivity timer. Called on every MCP request.
+ * If no request occurs within the timeout period, the server exits.
+ */
+function resetActivityTimeout(): void {
+  clearTimeout(activityTimeout);
+  activityTimeout = setTimeout(() => {
+    logMessage(server, "info", `No activity for ${INACTIVITY_TIMEOUT_MS / 1000}s, shutting down`);
+    process.exit(0);
+  }, INACTIVITY_TIMEOUT_MS);
+}
+
+// Shutdown configuration
+const SHUTDOWN_TIMEOUT_MS = 10000;
+
+function setupShutdownHandlers(mode: 'http' | 'stdio', httpServer?: import('http').Server): void {
+  const shutdown = (signal: string): void => {
+    clearTimeout(activityTimeout);
+    const logFn = mode === 'http' ? console.log : (msg: string) => logMessage(server, 'info', msg);
+    logFn(`Received ${signal}. Shutting down ${mode.toUpperCase()} server...`);
+
+    if (mode === 'http' && httpServer) {
+      const timeoutId = setTimeout(() => {
+        console.error('Forced shutdown after timeout');
+        process.exit(1);
+      }, SHUTDOWN_TIMEOUT_MS);
+
+      httpServer.close(() => {
+        clearTimeout(timeoutId);
+        console.log('HTTP server closed');
+        process.exit(0);
+      });
+    } else {
+      process.exit(0);
+    }
+  };
+
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
 // Main function
-async function main() {
+async function main(): Promise<void> {
   // Environment validation
   const validationError = validateEnv();
   if (validationError) {
@@ -238,8 +268,15 @@ async function main() {
     process.exit(1);
   }
 
+  // Validate Zhipu AI (warning only, don't block startup)
+  if (!process.env.ZHIPUAI_API_KEY) {
+    console.warn('WARNING: ZHIPUAI_API_KEY not set. Image tools will not work.');
+  }
+
   // Check for HTTP transport mode
   const httpPort = process.env.MCP_HTTP_PORT;
+  const gatewayUrlDisplay = process.env.GATEWAY_URL || "Not configured (required)";
+
   if (httpPort) {
     const port = parseInt(httpPort, 10);
     if (isNaN(port) || port < 1 || port > 65535) {
@@ -247,44 +284,51 @@ async function main() {
       process.exit(1);
     }
 
+    console.log(`GATEWAY_URL: ${gatewayUrlDisplay}`);
     console.log(`Starting HTTP transport on port ${port}`);
     const app = await createHttpServer(server);
-    
+
     const httpServer = app.listen(port, () => {
       console.log(`HTTP server listening on port ${port}`);
       console.log(`Health check: http://localhost:${port}/health`);
       console.log(`MCP endpoint: http://localhost:${port}/mcp`);
     });
 
-    // Handle graceful shutdown
-    const shutdown = (signal: string) => {
-      console.log(`Received ${signal}. Shutting down HTTP server...`);
-      httpServer.close(() => {
-        console.log("HTTP server closed");
-        process.exit(0);
-      });
-    };
-
-    process.on('SIGINT', () => shutdown('SIGINT'));
-    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    setupShutdownHandlers('http', httpServer);
   } else {
     // Default STDIO transport
     // Show helpful message when running in terminal
     if (process.stdin.isTTY) {
       console.log(`🔍 MCP SearXNG Server v${packageVersion} - Ready`);
       console.log("✅ Configuration valid");
-      console.log(`🌐 Gateway URL: ${process.env.GATEWAY_URL || "http://115.190.91.253:80 (default)"}`);
+      console.log(`🌐 Gateway URL: ${gatewayUrlDisplay}`);
       console.log("📡 Waiting for MCP client connection via STDIO...\n");
     }
-    
+
     const transport = new StdioServerTransport();
+
+    // Handle stdin close (when client disconnects)
+    const handleStdioClose = () => {
+      clearTimeout(activityTimeout);
+      logMessage(server, "info", "STDIO connection closed by client");
+      transport.close().then(() => process.exit(0));
+    };
+
+    // Listen for both stdin close and transport close
+    process.stdin.on('close', handleStdioClose);
+    transport.onclose = handleStdioClose;
+
     await server.connect(transport);
-    
+
+    // Start inactivity timer after connection
+    resetActivityTimeout();
+
     // Log after connection is established
     logMessage(server, "info", `MCP SearXNG Server v${packageVersion} connected via STDIO`);
-    logMessage(server, "info", `Log level: ${currentLogLevel}`);
     logMessage(server, "info", `Environment: ${process.env.NODE_ENV || 'development'}`);
-    logMessage(server, "info", `Gateway URL: ${process.env.GATEWAY_URL || 'http://115.190.91.253:80 (default)'}`);
+    logMessage(server, "info", `Gateway URL: ${gatewayUrlDisplay}`);
+
+    setupShutdownHandlers('stdio');
   }
 }
 
