@@ -31,15 +31,6 @@ Infrastructure capabilities for deployment and performance:
 - 🔄 **Dual Transport** - STDIO or HTTP modes for flexible deployment
 - ⏱️ **Auto Cleanup** - Automatic shutdown after 3min of inactivity
 
-### Powered By
-
-| Feature | Powered By |
-|---------|------------|
-| Search | [SearXNG](https://searxng.org/) - Privacy-respecting metasearch |
-| Scraping | [Firecrawl](https://www.firecrawl.dev/) - Web scraping API |
-| Image AI | [Zhipu AI](https://open.bigmodel.cn/) - Free tier for vision models |
-| Protocol | [MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk) - Official implementation |
-
 ---
 
 ## Compatible Clients
@@ -54,25 +45,36 @@ Works with any MCP client:
 
 ## Quick Start
 
-### Prerequisites
+The quickest way to get started is using the `claude mcp add` command - npx automatically handles downloading and running the server.
 
-Before using this MCP server, you need:
+### Prerequisites & Setup
 
-1. **A running Gateway API instance** with SearXNG and Firecrawl
-   - Deploy your own Gateway or use a hosted service
-   - Get your Gateway URL (e.g., `http://your-gateway.com:80`)
+Choose your usage mode and follow the corresponding setup:
 
-2. **(Optional) Zhipu AI API Key** for image features
-   - See [Getting Zhipu AI API Key](#getting-zhipu-ai-api-key) below
+#### Mode 1: AI-Only (No Docker Required)
 
-### Setting Up Gateway
+**Prerequisites:** None beyond installation
 
-The open-mcp server requires a Gateway API instance. You can deploy your own using Docker Compose:
-
-**Quick Start:**
-
+**Setup:**
 ```bash
-# Clone the repository (if not already done)
+claude mcp add-json -s user open-mcp '{
+  "command": "npx",
+  "args": ["-y", "@amplify-studio/open-mcp@latest"],
+  "env": {
+    "ZHIPUAI_API_KEY": "your-zhipu-api-key"
+  }
+}'
+```
+
+**Available Tools:** `image_understand`, `image_generate`
+
+#### Mode 2: Search & URL Reading
+
+**Prerequisites:** Running Gateway API instance
+
+**Setup Gateway:**
+```bash
+# Clone the repository
 git clone https://github.com/amplify-studio/open-mcp.git
 cd open-mcp
 
@@ -83,28 +85,55 @@ docker compose --env-file .env up -d
 curl http://localhost:80/health
 ```
 
-**What's Included:**
+**Setup MCP:**
+```bash
+claude mcp add-json -s user open-mcp '{
+  "command": "npx",
+  "args": ["-y", "@amplify-studio/open-mcp@latest"],
+  "env": {
+    "GATEWAY_URL": "http://127.0.0.1:80"
+  }
+}'
+```
 
-The Gateway includes 7 services that work together:
+**Available Tools:** `searxng_web_search`, `web_url_read`
+
+#### Mode 3: Full Features (Search + AI)
+
+**Prerequisites:** Running Gateway + Zhipu AI API Key
+
+**Setup:**
+```bash
+claude mcp add-json -s user open-mcp '{
+  "command": "npx",
+  "args": ["-y", "@amplify-studio/open-mcp@latest"],
+  "env": {
+    "GATEWAY_URL": "http://127.0.0.1:80",
+    "ZHIPUAI_API_KEY": "your-zhipu-api-key"
+  }
+}'
+```
+
+**Available Tools:** All 4 tools
+
+**Gateway Services:**
 
 | Service | Purpose | Port |
 |---------|---------|------|
 | **SearXNG** | Privacy-respecting metasearch engine | 8888 (internal) |
 | **Firecrawl API** | Web scraping and crawling | 3002 (internal) |
-| **Playwright** | Browser automation for dynamic content | 3000 (internal) |
+| **Playwright** | Browser automation | 3000 (internal) |
 | **Reader Adapter** | Jina Reader compatible API | 8082 (internal) |
 | **Redis** | Rate limiting and caching | 6379 (internal) |
 | **PostgreSQL** | Data persistence | 5432 (internal) |
 | **Nginx** | API gateway (public endpoint) | **80** |
 
 **API Endpoints (via Nginx on port 80):**
-
 - 🔍 **Search:** `http://localhost:80/api/search/`
 - 📄 **Read URL:** `http://localhost:80/api/read/<url>`
 - 📊 **Status:** `http://localhost:80/api/status`
 
 **Management:**
-
 ```bash
 # View logs
 docker compose logs -f
@@ -116,12 +145,26 @@ docker compose down
 docker compose restart
 ```
 
-For detailed configuration, see [docker-compose.yml](docker-compose.yml) and [.env.example](.env.example).
+### Basic Usage (Configuration File)
 
-### Basic Usage
+For Claude Desktop, add to your configuration file (`claude_desktop_config.json`):
 
-Add to your Claude Desktop configuration (`claude_desktop_config.json`):
+**AI-Only Mode:**
+```json
+{
+  "mcpServers": {
+    "open-mcp": {
+      "command": "npx",
+      "args": ["-y", "@amplify-studio/open-mcp@latest"],
+      "env": {
+        "ZHIPUAI_API_KEY": "your-zhipu-api-key"
+      }
+    }
+  }
+}
+```
 
+**Full Mode:**
 ```json
 {
   "mcpServers": {
@@ -136,10 +179,6 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
   }
 }
 ```
-
-**Replace:**
-- `http://your-gateway.com:80` with your actual Gateway URL (**required**)
-- `your-zhipu-api-key` with your Zhipu AI API key (**optional** - only needed for image features)
 
 ---
 
@@ -275,17 +314,26 @@ For more details about image features, see [Image AI Tools Documentation](./docs
 
 ## Configuration
 
-### Required Environment Variables
+### Flexible Configuration
 
-| Variable | Description |
-|----------|-------------|
-| `GATEWAY_URL` | **Required.** Your Gateway API URL (e.g., `http://your-gateway.com:80`) |
+The MCP server automatically detects which features are enabled based on your environment variables. You only need to configure what you use!
 
-### Optional Environment Variables
+#### Configuration Modes
 
-| Variable | Description |
-|----------|-------------|
-| `ZHIPUAI_API_KEY` | Optional. Required only for image understanding/generation features |
+| Mode | Environment Variables | Available Tools | Docker Required |
+|------|----------------------|-----------------|-----------------|
+| **AI-Only** | `ZHIPUAI_API_KEY` only | `image_understand`, `image_generate` | ❌ No |
+| **Search-Only** | `GATEWAY_URL` only | `searxng_web_search`, `web_url_read` | ✅ Yes |
+| **Full Mode** | Both variables | All 4 tools | ✅ Yes |
+
+#### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GATEWAY_URL` | Optional | Your Gateway API URL (e.g., `http://your-gateway.com:80`). Required for search and URL reading features. |
+| `ZHIPUAI_API_KEY` | Optional | Your Zhipu AI API key. Required for image understanding and generation features. |
+
+**Note:** Neither variable is strictly required. The server will automatically enable only the tools for which you've configured dependencies.
 
 **Need advanced configuration?** See [Advanced Setup Guide](docs/advanced-setup.md) for proxy, authentication, and HTTP transport options.
 
@@ -314,64 +362,6 @@ To use image understanding and generation features, you need a free API key from
 **Note**: The API key is optional. Only required if you want to use image understanding or generation features.
 
 ---
-
-### Option 1: NPX (Recommended)
-
-```bash
-npx -y @amplify-studio/open-mcp@latest
-```
-
-### Option 2: Global Install
-
-```bash
-npm install -g @amplify-studio/open-mcp
-open-mcp
-```
-
-### Option 3: Docker
-
-```bash
-docker pull amplifystudio/open-mcp:latest
-```
-
-```json
-{
-  "mcpServers": {
-    "open-mcp": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "GATEWAY_URL",
-        "-e", "ZHIPUAI_API_KEY",
-        "amplifystudio/open-mcp:latest"
-      ],
-      "env": {
-        "GATEWAY_URL": "http://your-gateway.com:80",
-        "ZHIPUAI_API_KEY": "your-zhipu-api-key"
-      }
-    }
-  }
-}
-```
-
-**Note**: For full Docker Compose deployment with all services, see [docker-compose.yml](https://github.com/amplify-studio/open-mcp/blob/main/docker-compose.yml).
-
-### Option 4: Local Development
-
-```bash
-# Clone the repository
-git clone https://github.com/amplify-studio/open-mcp.git
-cd open-mcp
-
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-
-# Run directly
-node dist/index.js
-```
 
 ## HTTP Transport Mode
 
@@ -505,6 +495,15 @@ Special thanks to these amazing projects:
 - [Model Context Protocol](https://modelcontextprotocol.io/) - Official MCP documentation
 - [SearXNG](https://searxng.org/) - Privacy-respecting metasearch engine
 - [Firecrawl](https://www.firecrawl.dev/) - Web scraping and crawling API
+
+### Powered By
+
+| Feature | Technology |
+|---------|------------|
+| **Search** | [SearXNG](https://searxng.org/) - Privacy-respecting metasearch engine |
+| **Web Scraping** | [Firecrawl](https://www.firecrawl.dev/) - Web scraping API |
+| **Image AI** | [Zhipu AI](https://open.bigmodel.cn/) - Free tier for vision models |
+| **Protocol** | [MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk) - Official implementation |
 
 ---
 

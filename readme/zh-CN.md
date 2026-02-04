@@ -33,15 +33,6 @@ Deploy your own local web search and page reading service in one click. Powered 
 - 🔄 **双传输模式** - 支持 STDIO 或 HTTP 模式灵活部署
 - ⏱️ **自动清理** - 3分钟无活动自动关闭，防止僵尸进程
 
-### 技术支持 / Powered By
-
-| 功能 | 技术支持 |
-|---------|------------|
-| 搜索 | [SearXNG](https://searxng.org/) - 尊重隐私的元搜索引擎 |
-| 抓取 | [Firecrawl](https://www.firecrawl.dev/) - 网页抓取 API |
-| 图像 AI | [智谱 AI](https://open.bigmodel.cn/) - 免费视觉模型 |
-| 协议 | [MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk) - 官方实现 |
-
 ---
 
 ## 兼容客户端
@@ -145,109 +136,46 @@ docker compose restart
 
 ---
 
-## 功能特性
+### 配置文件方式（Claude Desktop）
 
-### MCP 工具 / MCP Tools
+**仅 AI 模式：**
+```json
+{
+  "mcpServers": {
+    "open-mcp": {
+      "command": "npx",
+      "args": ["-y", "@amplify-studio/open-mcp@latest"],
+      "env": {
+        "ZHIPUAI_API_KEY": "your-zhipu-api-key"
+      }
+    }
+  }
+}
+```
 
-通过 MCP 协议提供给 AI 助手的工具：
+**全功能模式：**
+```json
+{
+  "mcpServers": {
+    "open-mcp": {
+      "command": "npx",
+      "args": ["-y", "@amplify-studio/open-mcp@latest"],
+      "env": {
+        "GATEWAY_URL": "http://your-gateway.com:80",
+        "ZHIPUAI_API_KEY": "your-zhipu-api-key"
+      }
+    }
+  }
+}
+```
 
-- 🔍 **网络搜索** - 支持分页、时间过滤、语言选择的网络搜索
-- 📄 **URL 读取** - 将网页内容提取为 markdown，支持高级过滤
-- 🎨 **图像理解** - 使用智谱 AI 分析图像、视频和文档
-- 🖼️ **图像生成** - 使用智谱 AI 从文本生成图像
+**替换以下值：**
+- `http://your-gateway.com:80` 替换为您的实际 Gateway URL
+- `your-zhipu-api-key` 替换为您的智谱 AI API 密钥
 
-### 服务器特性 / Server Features
-
-部署和性能相关的基础设施功能：
-
-- 💾 **智能缓存** - 自动缓存，TTL 过期机制提高性能
-- 🔄 **双传输模式** - 支持 STDIO 或 HTTP 模式灵活部署
-- ⏱️ **自动清理** - 3分钟无活动自动关闭，防止僵尸进程
-
-### 技术支持 / Powered By
-
-| 功能 | 技术支持 |
-|---------|------------|
-| 搜索 | [SearXNG](https://searxng.org/) - 尊重隐私的元搜索引擎 |
-| 抓取 | [Firecrawl](https://www.firecrawl.dev/) - 网页抓取 API |
-| 图像 AI | [智谱 AI](https://open.bigmodel.cn/) - 免费视觉模型 |
-| 协议 | [MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk) - 官方实现 |
+**注意：** 工具会根据配置的环境变量自动启用。您只需配置需要使用的功能！
 
 ---
-
-## 兼容客户端
-
-兼容任何 MCP 客户端，包括：
-- **Claude Desktop** / **Claude Code** / **Cursor** / **Cline**
-- **Continue.dev**
-- **HTTP 模式**（用于远程部署）
-
-### 安装
-
-#### 使用 Claude CLI（推荐）
-
-```bash
-claude mcp add-json -s user open-mcp '{
-  "command": "npx",
-  "args": ["-y", "@amplify-studio/open-mcp@latest"],
-  "env": {
-    "GATEWAY_URL": "https://your-gateway-instance.com",
-    "ZHIPUAI_API_KEY": "your-zhipu-api-key"
-  }
-}'
-```
-
-#### 使用 Claude Desktop 配置
-
-编辑 `claude_desktop_config.json`：
-
-```json
-{
-  "mcpServers": {
-    "open-mcp": {
-      "command": "npx",
-      "args": ["-y", "@amplify-studio/open-mcp@latest"],
-      "env": {
-        "GATEWAY_URL": "https://your-gateway-instance.com",
-        "ZHIPUAI_API_KEY": "your-zhipu-api-key"
-      }
-    }
-  }
-}
-```
-
-#### 使用 Continue.dev
-
-添加到您的 `config.json`：
-
-```json
-{
-  "mcpServers": {
-    "open-mcp": {
-      "command": "npx",
-      "args": ["-y", "@amplify-studio/open-mcp@latest"],
-      "env": {
-        "GATEWAY_URL": "https://your-gateway-instance.com",
-        "ZHIPUAI_API_KEY": "your-zhipu-api-key"
-      }
-    }
-  }
-}
-```
-
-**注意**：将 `https://your-gateway-instance.com` 替换为您的 Gateway URL（必需），将 `your-zhipu-api-key` 替换为您的智谱 API 密钥（可选）。
-
-#### HTTP 模式
-
-```bash
-# 启动 HTTP 服务器
-MCP_HTTP_PORT=3333 GATEWAY_URL=https://your-gateway-instance.com npx @amplify-studio/open-mcp@latest
-
-# 从 Claude Code 连接
-claude mcp add --transport http open-mcp http://localhost:3333/mcp
-```
-
-## 使用方法
 
 ### 网络搜索工具
 
@@ -379,173 +307,30 @@ claude mcp add --transport http open-mcp http://localhost:3333/mcp
 
 ## 配置
 
-### 必需的环境变量
+### 灵活配置
 
-| 变量 | 描述 |
-|---------|-------------------|
-| `GATEWAY_URL` | **必需。** 您的 Gateway API 地址（例如：`http://your-gateway.com:80`） |
+MCP 服务器会根据您的环境变量自动检测启用的功能。您只需配置需要使用的部分！
 
-### 可选的环境变量
+#### 配置模式
 
-| 变量 | 描述 |
-|---------|-------------------|
-| `ZHIPUAI_API_KEY` | 可选。仅在需要图像理解/生成功能时必需 |
+| 模式 | 环境变量 | 可用工具 | 需要 Docker |
+|------|----------|----------|-----------|
+| **仅 AI** | 仅 `ZHIPUAI_API_KEY` | `image_understand`、`image_generate` | ❌ 不需要 |
+| **仅搜索** | 仅 `GATEWAY_URL` | `searxng_web_search`、`web_url_read` | ✅ 需要 |
+| **全功能** | 两个变量都有 | 全部 4 个工具 | ✅ 需要 |
 
-**需要高级配置？** 查看 [高级配置指南](docs/advanced-setup-zh.md) 了解代理、认证和 HTTP 传输等选项。
+#### 环境变量
+
+| 变量 | 是否必需 | 说明 |
+|------|----------|------|
+| `GATEWAY_URL` | 可选 | Gateway API URL（例如：`http://your-gateway.com:80`）。仅在需要搜索和 URL 读取功能时必需。 |
+| `ZHIPUAI_API_KEY` | 可选 | 您的智谱 AI API 密钥。仅在需要图像理解和生成功能时必需。 |
+
+**注意：** 两个变量都不是严格必需的。服务器会自动启用您已配置依赖项对应的工具。
+
+**需要高级配置？** 参阅 [高级设置指南](../docs/advanced-setup.md) 了解代理、认证和 HTTP 传输选项。
 
 ### 获取智谱 AI API 密钥
-
-要使用图像理解和生成功能，您需要从智谱 AI 获取免费的 API 密钥：
-
-1. **通过邀请链接注册**: [https://www.bigmodel.cn/invite?icode=yn2yXKXS+Ba1UqrD19VwPwZ3c5owLmCCcMQXWcJRS8E=](https://www.bigmodel.cn/invite?icode=yn2yXKXS+Ba1UqrD19VwPwZ3c5owLmCCcMQXWcJRS8E=)
-   - 使用邀请链接注册可获得更多权益
-
-2. **获取 API 密钥**:
-   - 注册后，访问 [API Keys 页面](https://www.bigmodel.cn/usercenter/proj-mgmt/apikeys)
-   - 点击"生成新的 API Key"
-   - 复制生成的密钥（格式：`id.secret`）
-
-3. **免费额度说明**:
-   - GLM-4.6V-Flash: 视觉理解免费使用
-   - Cogview-3-Flash: 图像生成免费使用
-   - 基础使用无需绑定银行卡
-
-4. **设置环境变量**:
-   ```bash
-   export ZHIPUAI_API_KEY="your-api-key-here"
-   ```
-
-**注意**: API 密钥是可选的。只有在需要使用图像理解或生成功能时才必需。
-
----
-
-## 安装方法
-
-### 选项 1: NPX（推荐）
-
-```bash
-npx -y @amplify-studio/open-mcp@latest
-```
-
-### 选项 2: 全局安装
-
-```bash
-npm install -g @amplify-studio/open-mcp
-mcp-searxng
-```
-
-### 选项 3: Docker
-
-#### 使用预构建镜像
-
-```bash
-docker pull amplifystudio/open-mcp:latest
-```
-
-```json
-{
-  "mcpServers": {
-    "open-mcp": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "GATEWAY_URL",
-        "-e", "ZHIPUAI_API_KEY",
-        "amplifystudio/open-mcp:latest"
-      ],
-      "env": {
-        "GATEWAY_URL": "https://your-gateway-instance.com",
-        "ZHIPUAI_API_KEY": "your-zhipu-api-key"
-      }
-    }
-  }
-}
-```
-
-#### Docker Compose
-
-**Docker Compose 架构 / Architecture:**
-
-```mermaid
-graph TB
-    User[用户] -->|HTTP| Nginx[nginx:alpine<br/>API 网关:80,3333]
-    Claude[Claude Desktop/Code] -->|MCP| Nginx
-
-    Nginx -->|/api/search| SearXNG[mcp-searxng:8888<br/>搜索引擎]
-    Nginx -->|/api/read| Reader[firecrawl-reader-adapter:8082<br/>Jina兼容]
-    Nginx -->|/firecrawl| Firecrawl[firecrawl-api:3002<br/>抓取服务]
-
-    SearXNG --> Web((互联网))
-    Reader --> Firecrawl
-    Firecrawl --> Playwright[playwright-service:3000<br/>浏览器]
-    Firecrawl --> Web
-
-    Firecrawl --> Redis[(redis:6379)]
-    Firecrawl --> Postgres[(postgres:5432)]
-```
-
-**服务概览 / Service Overview:**
-
-| 服务 | 端口 | 用途 |
-|---------|------|---------|
-| **nginx** | 80, 3333 | API 网关，将请求路由到内部服务 |
-| **mcp-searxng** | 8888 | 尊重隐私的元搜索引擎 |
-| **firecrawl-reader-adapter** | 8082 | Jina Reader 兼容的 URL 读取 API |
-| **firecrawl-api** | 3002 | 带浏览器自动化的网页抓取 API |
-| **playwright-service** | 3000 | 用于动态内容的无头浏览器 |
-| **redis** | 6379 | 速率限制和缓存 |
-| **nuq-postgres** | 5432 | 数据持久化 |
-
-**使用 Docker Compose 快速开始 / Quick Start:**
-
-```yaml
-services:
-  mcp-searxng:
-    image: amplifystudio/open-mcp:latest
-    stdin_open: true
-    environment:
-      - GATEWAY_URL=https://your-gateway-instance.com
-      # 根据需要添加可选变量
-      # - AUTH_USERNAME=your_username
-      # - AUTH_PASSWORD=your_password
-```
-
-完整的 7 服务 Docker Compose 部署，请参阅 [docker-compose.yml](https://github.com/amplify-studio/open-mcp/blob/main/docker-compose.yml)。
-
-### 选项 4: 本地开发
-
-```bash
-# 克隆仓库
-git clone https://github.com/amplify-studio/open-mcp.git
-cd open-mcp
-
-# 安装依赖
-npm install
-
-# 构建项目
-npm run build
-
-# 直接运行
-node dist/index.js
-```
-
-## HTTP 传输模式
-
-服务器支持用于远程部署的 HTTP 传输。详见 [高级配置指南](docs/advanced-setup-zh.md#http-传输模式)。
-
-**快速开始**:
-```bash
-MCP_HTTP_PORT=3333 GATEWAY_URL=http://your-gateway.com:80 npx @amplify-studio/open-mcp@latest
-```
-
-然后从 Claude Code 连接：
-```bash
-claude mcp add --transport http open-mcp http://localhost:3333/mcp
-```
-
-## 开发
-
-### 设置
 
 ```bash
 # 安装依赖
@@ -671,3 +456,14 @@ MIT 许可证 - 详情见 [LICENSE](../LICENSE)。
 ---
 
 **由 [Amplify Studio](https://github.com/amplify-studio) 用 ❤️ 制作**
+---
+
+### 技术支持
+
+| 功能 | 技术栈 |
+|---------|------------|
+| **搜索** | [SearXNG](https://searxng.org/) - 尊重隐私的元搜索引擎 |
+| **网页抓取** | [Firecrawl](https://www.firecrawl.dev/) - 网页抓取 API |
+| **图像 AI** | [智谱 AI](https://open.bigmodel.cn/) - 免费视觉模型 |
+| **协议** | [MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk) - 官方实现 |
+

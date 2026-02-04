@@ -32,7 +32,7 @@ import { createHttpServer } from "./http-server.js";
 import { validateEnvironment as validateEnv } from "./error-handler.js";
 
 // Use a static version string that will be updated by the version script
-const packageVersion = "0.10.3";
+const packageVersion = "0.10.4";
 
 // Export the version for use in other modules
 export { packageVersion };
@@ -342,10 +342,13 @@ async function main(): Promise<void> {
     const transport = new StdioServerTransport();
 
     // Handle stdin close (when client disconnects)
+    let isClosing = false;
     const handleStdioClose = () => {
+      if (isClosing) return;
+      isClosing = true;
       clearTimeout(activityTimeout);
       logMessage(server, "info", "STDIO connection closed by client");
-      transport.close().then(() => process.exit(0));
+      process.exit(0);
     };
 
     // Listen for both stdin close and transport close
