@@ -20,8 +20,8 @@ Tools provided to AI assistants via MCP protocol:
 
 - 🔍 **Web Search** - Search the web with pagination, time filtering, and language options
 - 📄 **URL Reading** - Extract web page content as markdown with advanced filtering
-- 🎨 **Image Understanding** - Analyze images, videos, and documents using Zhipu AI
-- 🖼️ **Image Generation** - Generate images from text using Zhipu AI
+- 🎨 **Image Understanding** - Analyze images, videos, and documents using Zhipu AI (**FREE tier - requires free API key**)
+- 🖼️ **Image Generation** - Generate images from text using Zhipu AI (**FREE tier - requires free API key**)
 
 ### Server Features
 
@@ -30,6 +30,19 @@ Infrastructure capabilities for deployment and performance:
 - 💾 **Smart Caching** - Automatic caching with TTL to improve performance
 - 🔄 **Dual Transport** - STDIO or HTTP modes for flexible deployment
 - ⏱️ **Auto Cleanup** - Automatic shutdown after 3min of inactivity
+
+### 💰 Free AI Image Features
+
+**The image understanding and generation tools are completely FREE to use!**
+
+Powered by Zhipu AI's generous free tier:
+- ✅ **GLM-4.6V-Flash** - Vision understanding model (FREE)
+- ✅ **Cogview-3-Flash** - Image generation model (FREE)
+- ✅ **No credit card required** - Just register for a free API key
+- ✅ **No usage fees** for basic personal usage
+- ✅ **Rate limits**: ~5 concurrent requests for free tier ([details](https://www.bigmodel.cn/dev/howuse/rate-limits))
+
+Just get a free API key from [Zhipu AI](https://www.bigmodel.cn/invite?icode=yn2yXKXS+Ba1UqrD19VwPwZ3c5owLmCCcMQXWcJRS8E=) and you're ready to go!
 
 ---
 
@@ -54,6 +67,8 @@ Choose your usage mode and follow the corresponding setup:
 #### Mode 1: AI-Only (No Docker Required)
 
 **Prerequisites:** None beyond installation
+
+**Get FREE API Key:** See [Getting Zhipu AI API Key](#getting-zhipu-ai-api-key) below
 
 **Setup:**
 ```bash
@@ -101,6 +116,8 @@ claude mcp add-json -s user open-mcp '{
 #### Mode 3: Full Features (Search + AI)
 
 **Prerequisites:** Running Gateway + Zhipu AI API Key
+- **Get FREE API Key:** See [Getting Zhipu AI API Key](#getting-zhipu-ai-api-key) below
+- **Deploy Gateway:** Follow steps in Mode 2
 
 **Setup:**
 ```bash

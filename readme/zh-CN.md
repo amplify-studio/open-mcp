@@ -22,8 +22,8 @@ Deploy your own local web search and page reading service in one click. Powered 
 
 - 🔍 **网络搜索** - 支持分页、时间过滤、语言选择的网络搜索
 - 📄 **URL 读取** - 将网页内容提取为 markdown，支持高级过滤
-- 🎨 **图像理解** - 使用智谱 AI 分析图像、视频和文档
-- 🖼️ **图像生成** - 使用智谱 AI 从文本生成图像
+- 🎨 **图像理解** - 使用智谱 AI 分析图像、视频和文档（**免费使用 - 需申请免费 API 密钥**）
+- 🖼️ **图像生成** - 使用智谱 AI 从文本生成图像（**免费使用 - 需申请免费 API 密钥**）
 
 ### 服务器特性 / Server Features
 
@@ -32,6 +32,19 @@ Deploy your own local web search and page reading service in one click. Powered 
 - 💾 **智能缓存** - 自动缓存，TTL 过期机制提高性能
 - 🔄 **双传输模式** - 支持 STDIO 或 HTTP 模式灵活部署
 - ⏱️ **自动清理** - 3分钟无活动自动关闭，防止僵尸进程
+
+### 💰 免费的 AI 图像功能
+
+**图像理解和生成工具完全免费使用！**
+
+得益于智谱 AI 的慷慨免费额度：
+- ✅ **GLM-4.6V-Flash** - 视觉理解模型（免费）
+- ✅ **Cogview-3-Flash** - 图像生成模型（免费）
+- ✅ **无需信用卡** - 只需注册获取免费 API 密钥
+- ✅ **无使用费用**（基础个人使用）
+- ✅ **并发限制**：免费用户约 5 个并发请求（[详见官方文档](https://www.bigmodel.cn/dev/howuse/rate-limits)）
+
+只需从 [智谱 AI](https://www.bigmodel.cn/invite?icode=yn2yXKXS+Ba1UqrD19VwPwZ3c5owLmCCcMQXWcJRS8E=) 获取免费 API 密钥即可开始使用！
 
 ---
 
@@ -115,6 +128,8 @@ docker compose restart
 
 添加到 Claude Desktop 配置文件（`claude_desktop_config.json`）：
 
+> 💡 **获取免费的 API 密钥**：参见下方的[获取智谱 AI API 密钥](#获取智谱-api-密钥)
+
 ```json
 {
   "mcpServers": {
@@ -139,6 +154,8 @@ docker compose restart
 ### 配置文件方式（Claude Desktop）
 
 **仅 AI 模式：**
+
+> 💡 **获取免费的 API 密钥**：参见下方的[获取智谱 AI API 密钥](#获取智谱-api-密钥)
 ```json
 {
   "mcpServers": {
@@ -154,6 +171,8 @@ docker compose restart
 ```
 
 **全功能模式：**
+
+> 💡 **获取免费的 API 密钥**：参见下方的[获取智谱 AI API 密钥](#获取智谱-api-密钥)
 ```json
 {
   "mcpServers": {
