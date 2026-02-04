@@ -1,6 +1,6 @@
 {
     "name": "@amplify-studio/open-mcp",
-    "version": "0.10.3",
+    "version": "0.10.4",
     "description": "Open MCP server for web search and URL reading via Gateway API",
     "license": "MIT",
     "author": "Amplify Studio (https://github.com/amplify-studio)",
